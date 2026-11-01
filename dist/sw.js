@@ -1,4 +1,4 @@
-const CACHE = "splitsmart-v6";
+const CACHE = "splitsmart-v7";
 self.addEventListener("install", (e) =>
   e.waitUntil(
     caches
@@ -57,7 +57,8 @@ self.addEventListener("activate", (e) =>
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   let url = new URL(e.request.url);
-  if (url.pathname.includes("/models/")) return;
+  // OCR models are cached by ocr.js in their own cache; don't duplicate them.
+  if (/\/models\/|\.onnx$|ppocrv5_dict/.test(url.pathname)) return;
   let same = url.origin === location.origin,
     put = (response) => {
       if (response.ok && (same || response.type === "cors")) {

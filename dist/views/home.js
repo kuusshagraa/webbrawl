@@ -50,12 +50,12 @@ export const Home = {
       : owed
         ? `Friends owe you <b class="blue">${fmt(owed)}</b> in total.`
         : `You're all square. Nothing to pay right now.`;
-    let cta = owe ? `<button class="btn primary pill-sm" data-go="settle">Pay Bills</button>` : owed ? `<button class="btn primary pill-sm" data-go="settle">Settle up</button>` : `<button class="btn primary pill-sm" data-go="scan">Scan a bill</button>`;
+    let cta = owe ? `<button class="btn primary pill-sm" data-go="settle">Pay Bills</button>` : owed ? `<button class="btn primary pill-sm" data-go="settle">Settle up</button>` : `<button class="btn primary pill-sm" data-act="quick-open">Add expense</button>`;
     return `<header class="home-top">${iconBtn("menu", "drawer", "Menu")}<div class="row-gap">${iconBtn("search", "go-search", "Search bills")}<button class="icon-btn" data-act="notifications" aria-label="Notifications${notes.length ? ` (${notes.length})` : ""}">${icon("bell")}${notes.length ? '<i class="dot"></i>' : ""}</button></div></header>
     <div class="screen-body">
       <section class="card welcome">
         <h2>Welcome back, ${esc(firstName(m?.name))}!</h2>
-        <p>${message}</p>
+        <p>${message.replace(/<b class="blue">([^<]+)<\/b>/, (_, v) => `<b class="blue" data-count="${(owe || owed)}">${v}</b>`)}</p>
         ${cta}
       </section>
       ${drafts
@@ -66,7 +66,7 @@ export const Home = {
         )
         .join("")}
       <div class="section-head"><h3>Recent Bills</h3>${recent.length ? `<a class="see-all" href="#/history">See All</a>` : ""}</div>
-      ${recent.length ? `<div class="stack-list">${recent.map(billCard).join("")}</div>` : `<section class="card">${empty(`<div class="empty-art">${icon("receipt")}</div>`, "No bills yet", "Scan a receipt or a food-app screenshot. We'll read the items for you.", `<button class="btn primary sm" data-go="scan">${icon("scan")} Scan a bill</button><button class="btn outline sm" data-go="sample">Try a sample</button>`)}</section>`}
+      ${recent.length ? `<div class="stack-list">${recent.map(billCard).join("")}</div>` : `<section class="card">${empty(`<div class="empty-art">${icon("receipt")}</div>`, "No bills yet", "Scan a receipt or a food-app screenshot. We'll read the items for you.", `<button class="btn primary sm" data-act="quick-open">${icon("plus")} Add expense</button><button class="btn outline sm" data-go="scan">${icon("scan")} Scan a bill</button><button class="link small" data-go="sample">Try a sample</button>`)}</section>`}
       <div class="section-head"><h3>Your Groups</h3><a class="see-all" href="#/groups">${groups.length ? "See All" : "Create"}</a></div>
       <div class="group-strip" data-scroll="groups">${groups
         .map((l) => {

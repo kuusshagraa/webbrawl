@@ -11,7 +11,7 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 - **No build step.** Plain ES modules in `dist/`, served as static files. Don't add a bundler or framework.
 - **Match the existing code style:** small pure modules for logic, views as functions returning HTML strings, `data-act` event delegation. Escape all user text with `esc()`.
 - **Money is integer paise** inside the engine (`money()` in `core.js`). Splits must always add up exactly to the total; there is a property test for this.
-- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 57 tests pass.
+- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 60 tests pass.
 - **Run locally:** `python3 -m http.server 8001 --directory dist`, then open http://localhost:8001. Use a new port or a private window to see onboarding from scratch.
 - **Ship:** branch → PR to `main` (repo `kuusshagraa/webbrawl`) → wait for the Netlify deploy preview check to pass → merge. Commit messages end with a `Co-Authored-By` line.
 - Design language: lavender/peach gradient background, white cards, primary blue `#4353E6`, Plus Jakarta Sans, torn-receipt card edges, illustrated avatars. Tokens are at the top of `dist/style.css`.
@@ -45,10 +45,10 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 
 - [x] Spec written and committed
 - [x] `dist/quick.js` sentence parser + `tests/quick.test.js` (8 tests passing)
-- [ ] Quick Add sheet UI (`views/quick.js`), wired to the tab bar **+**, desktop rail, Home and keyboard `N`
-- [ ] Voice input (Web Speech API, `lang = "en-IN"`, hide the mic when unsupported)
+- [x] Quick Add sheet UI (`views/quick.js`), wired to the tab bar **+**, desktop rail, Home and keyboard `N` (4-column keypad so it fits a 700px-tall iPhone viewport; tested in WebKit)
+- [x] Voice input (Web Speech API, `lang = "en-IN"`, hidden when unsupported) — not testable headless; verify on a phone
 - [ ] Smart paste: one paste box that routes to the receipt parser or the sentence parser
-- [ ] WhatsApp nudges (`dist/nudge.js` + optional phone number on people)
+- [~] WhatsApp nudges: `dist/nudge.js` + tests done, Quick Add success buttons done. Still to do: phone field on people, summary person cards, Settle up "Remind"
 - [ ] Payment reminders in the bell (money owed to me for 3+ days)
 - [ ] Motion: View Transitions for route changes, spring sheets, count-up totals, receipt "print", confetti, Android haptics
 - [ ] Monthly Wrapped (`dist/wrapped.js` stats + story view + share image)
@@ -96,3 +96,12 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 - Not yet tested on a physical phone. Live camera needs HTTPS (the Netlify site has it).
 - The first scan downloads about 35 MB (OCR engine + models), cached afterwards.
 - Dark mode is not built. Remote item claiming through links would need a backend (out of scope).
+
+## Gotchas learned the hard way
+
+- **Class-name collisions:** generic classes clash with component modifiers (`.scan` vs `.tab.scan`, `.empty` vs `.qa-amount.empty`). The empty-state class is now `.empty-state`. Prefer component-prefixed modifier names.
+- **Re-render on every keystroke:** inputs keep the raw string the user typed; never normalise numbers while typing (see `num()` in `views/bill.js`).
+- **Entrance animations** must use `enter(slot, key)` from `ui.js`, otherwise they replay on every re-render.
+- **Buttons inside forms** default to `type=submit`; `fixButtons()` makes untyped buttons `type="button"` after each render. Use an explicit `type="submit"` for submit buttons.
+- **Test in WebKit too** (Safari is the main phone browser): `npx playwright install webkit`. Several bugs only appeared there.
+- **Netlify serves large binaries slowly**; OCR models load from jsDelivr/Hugging Face mirrors first (`ocr.js`).

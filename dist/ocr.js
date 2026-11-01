@@ -87,38 +87,72 @@ export const onProgress = (fn) => (progressFn = fn);
 // Pinned versions: the runtime is tested with these exact builds.
 const ORT_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/";
 const PADDLE = "https://cdn.jsdelivr.net/npm/paddleocr@1.2.0/dist/index.mjs";
-const MODELS = new URL("./models/", import.meta.url).href;
+// Model mirrors, fastest first. Netlify serves large binaries slowly, so the
+// jsDelivr copy pinned to the commit that added them (immutable) comes first.
+const MODEL_MIRRORS = {
+  "PP-OCRv5_mobile_det_infer.onnx": 4819576,
+  "PP-OCRv5_mobile_rec_infer.onnx": 16533929,
+  "ppocrv5_dict.txt": 74013,
+};
+const MIRRORS = [
+  "https://cdn.jsdelivr.net/gh/kuusshagraa/webbrawl@b8c84bb33e40da194078e4168bb6dfdc85b954d3/dist/models/",
+  "https://huggingface.co/x3zvawq/paddleocr-js-onnx/resolve/main/ppocr_v5_mobile/",
+  new URL("./models/", import.meta.url).href,
+];
 const MODEL_CACHE = "splitsmart-models-v1";
 let paddle = null,
   paddleLoading = null;
 
-// Fetches a file once, then serves it from Cache Storage (works offline).
-async function cachedBytes(url, label, weight, base) {
-  let cache = await caches.open(MODEL_CACHE).catch(() => null),
-    hit = await cache?.match(url);
-  if (hit) return new Uint8Array(await hit.arrayBuffer());
-  let res = await fetch(url);
-  if (!res.ok) throw new Error(`download ${res.status}`);
-  let total = Number(res.headers.get("content-length")) || 0,
-    reader = res.body?.getReader(),
-    chunks = [],
-    got = 0;
-  if (!reader) return new Uint8Array(await res.arrayBuffer());
-  for (;;) {
-    let { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    got += value.length;
-    if (total) progressFn(label, base + (got / total) * weight);
+// Downloads one URL with progress; gives up if no data arrives for 15s.
+async function download(url, size, onBytes) {
+  let ctrl = new AbortController(),
+    stall = setTimeout(() => ctrl.abort(), 15000),
+    res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+  try {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let reader = res.body.getReader(),
+      bytes = new Uint8Array(size),
+      got = 0;
+    for (;;) {
+      let { done, value } = await reader.read();
+      if (done) break;
+      clearTimeout(stall);
+      stall = setTimeout(() => ctrl.abort(), 15000);
+      if (got + value.length > size) throw new Error("larger than expected");
+      bytes.set(value, got);
+      got += value.length;
+      onBytes(got);
+    }
+    if (got !== size) throw new Error(`incomplete ${got}/${size}`);
+    return bytes;
+  } finally {
+    clearTimeout(stall);
   }
-  let bytes = new Uint8Array(got),
-    at = 0;
-  for (let c of chunks) {
-    bytes.set(c, at);
-    at += c.length;
+}
+
+// Fetches a model once (trying each mirror), then serves it from Cache
+// Storage so later scans work offline.
+async function cachedBytes(name, label, weight, base) {
+  let size = MODEL_MIRRORS[name],
+    key = new URL("./models/" + name, import.meta.url).href,
+    cache = await caches.open(MODEL_CACHE).catch(() => null),
+    hit = await cache?.match(key);
+  if (hit) {
+    let bytes = new Uint8Array(await hit.arrayBuffer());
+    if (bytes.length === size) return bytes;
   }
-  cache?.put(url, new Response(bytes, { headers: { "content-type": "application/octet-stream" } })).catch(() => {});
-  return bytes;
+  let lastError;
+  for (let mirror of MIRRORS) {
+    try {
+      let bytes = await download(mirror + name, size, (got) => progressFn(label, base + (got / size) * weight));
+      cache?.put(key, new Response(bytes, { headers: { "content-type": "application/octet-stream" } })).catch(() => {});
+      return bytes;
+    } catch (e) {
+      lastError = e;
+      console.warn(`Model download from ${mirror} failed`, e);
+    }
+  }
+  throw lastError;
 }
 
 async function loadPaddle() {
@@ -133,9 +167,9 @@ async function loadPaddle() {
     let { PaddleOcrService } = await import(PADDLE);
     let label = "Downloading the scanner (first time only)";
     let [det, rec, dict] = await Promise.all([
-      cachedBytes(MODELS + "PP-OCRv5_mobile_det_infer.onnx", label, 0.18, 0.05),
-      cachedBytes(MODELS + "PP-OCRv5_mobile_rec_infer.onnx", label, 0.6, 0.23),
-      cachedBytes(MODELS + "ppocrv5_dict.txt", label, 0.01, 0.83),
+      cachedBytes("PP-OCRv5_mobile_det_infer.onnx", label, 0.18, 0.05),
+      cachedBytes("PP-OCRv5_mobile_rec_infer.onnx", label, 0.6, 0.23),
+      cachedBytes("ppocrv5_dict.txt", label, 0.01, 0.83),
     ]);
     progressFn("Getting the scanner ready", 0.86);
     // PaddleOCR appends the space character after the dictionary entries.

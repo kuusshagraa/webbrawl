@@ -109,6 +109,8 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 - **Buttons inside forms** default to `type=submit`; `fixButtons()` makes untyped buttons `type="button"` after each render. Use an explicit `type="submit"` for submit buttons.
 - **Test in WebKit too** (Safari is the main phone browser): `npx playwright install webkit`. Several bugs only appeared there.
 - **Netlify serves large binaries slowly**; OCR models load from jsDelivr/Hugging Face mirrors first (`ocr.js`).
+- **Netlify's free plan injects a "Powered by Netlify" badge** (`#nl-badge-frame`, bottom-right, ~64px tall) on the live site. `watchHostBadge()` in `app.js` measures it and sets `--host-inset`; every bottom control (tab bar, CTA bars, sheet actions, toasts) adds that inset. Don't hide the badge; the account owner can remove it in Netlify or by upgrading.
+- **Don't force-push** shared branches; open a new branch/PR instead.
 
 ## Ideas not built yet (good next steps)
 

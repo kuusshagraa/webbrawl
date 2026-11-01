@@ -1,4 +1,4 @@
-const CACHE = "splitsmart-v3";
+const CACHE = "splitsmart-v4";
 self.addEventListener("install", (e) =>
   e.waitUntil(
     caches

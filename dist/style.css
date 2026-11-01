@@ -1760,3 +1760,4 @@ body {
     padding: 10px;
   }
 }
+.no-group-card{min-height:300px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:36px;background:#fbfcf7}.no-group-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#d5f66a;color:#263d33;font-size:26px;margin-bottom:22px}.no-group-card h2{font:800 25px Manrope,sans-serif;letter-spacing:-1px;margin:12px 0 8px}.no-group-card p{max-width:460px}.no-group-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}@media(max-width:600px){.no-group-card{padding:24px;min-height:280px}.no-group-actions{gap:8px}.no-group-actions .button{font-size:12px}}

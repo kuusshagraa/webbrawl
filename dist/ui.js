@@ -115,9 +115,9 @@ export function commit(fn, undoLabel = null) {
 
 const sheets = [];
 let lastFocus = null;
-export function openSheet(render, { label = "Dialog", onClose = null, wide = false } = {}) {
+export function openSheet(render, { label = "Dialog", onClose = null, wide = false, cls = "" } = {}) {
   if (!sheets.length) lastFocus = document.activeElement;
-  sheets.push({ render, label, onClose, wide, fresh: true });
+  sheets.push({ render, label, onClose, wide, cls, fresh: true });
   drawSheets(true);
 }
 export function closeSheet(all = false) {
@@ -139,8 +139,9 @@ export function drawSheets(focus = false) {
   document.body.classList.add("locked");
   let anim = top.fresh ? "enter" : "";
   top.fresh = false;
-  root.innerHTML = `<div class="sheet-wrap ${anim}" data-act="sheet-backdrop"><section class="sheet ${top.wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${esc(top.label)}"><div class="grabber" aria-hidden="true"></div>${top.render()}</section></div>`;
+  root.innerHTML = `<div class="sheet-wrap ${anim}" data-act="sheet-backdrop"><section class="sheet ${top.wide ? "wide" : ""} ${top.cls || ""}" role="dialog" aria-modal="true" aria-label="${esc(top.label)}"><div class="grabber" aria-hidden="true"></div>${top.render()}</section></div>`;
   fixButtons(root);
+  countUp(root);
   if (focus) {
     let f = root.querySelector("[autofocus]") || root.querySelector("input, select, textarea, button:not(.sheet-x)") || root.querySelector("button");
     f?.focus({ preventScroll: true });
@@ -259,7 +260,46 @@ export function topbar(title, { left = iconBtn("back", "back", "Back"), right = 
   return `<header class="topbar">${left || '<span class="icon-spacer"></span>'}<h1 class="topbar-title">${title}</h1>${right || '<span class="icon-spacer"></span>'}</header>`;
 }
 export function empty(art, title, text, actions = "") {
-  return `<div class="empty">${art}<h3>${title}</h3><p>${text}</p>${actions ? `<div class="empty-actions">${actions}</div>` : ""}</div>`;
+  return `<div class="empty-state">${art}<h3>${title}</h3><p>${text}</p>${actions ? `<div class="empty-actions">${actions}</div>` : ""}</div>`;
 }
 export const toggle = (on, act, label, extra = "") =>
   `<button class="switch ${on ? "on" : ""}" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-act="${act}" ${extra}><i></i></button>`;
+
+/* ---------- Delight ---------- */
+
+const calm = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Light tap feedback on Android (iOS doesn't expose vibration to websites).
+export function haptic(ms = 8) {
+  if (!calm()) navigator.vibrate?.(ms);
+}
+// A burst of confetti over everything; removes itself.
+export function confetti() {
+  if (calm()) return;
+  let el = document.createElement("div");
+  el.className = "confetti burst";
+  el.setAttribute("aria-hidden", "true");
+  el.innerHTML = Array.from({ length: 28 }, (_, i) => `<i style="--i:${i};--x:${(Math.random() * 100).toFixed(1)}%;--r:${Math.round(Math.random() * 720 - 360)}deg"></i>`).join("");
+  document.body.append(el);
+  setTimeout(() => el.remove(), 3200);
+}
+// Counts amounts up from zero the first time they appear.
+const counted = new WeakSet();
+export function countUp(root = document) {
+  if (calm()) return;
+  root.querySelectorAll("[data-count]").forEach((el) => {
+    let key = el.dataset.count + "|" + (el.dataset.countKey || "");
+    if (counted.has(el) || seen.get("count:" + key)) return;
+    counted.add(el);
+    seen.set("count:" + key, true);
+    let target = Number(el.dataset.count),
+      start = performance.now(),
+      dur = 650;
+    let step = (t) => {
+      let k = Math.min(1, (t - start) / dur),
+        eased = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(Math.round(target * eased));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}

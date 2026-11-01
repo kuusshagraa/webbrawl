@@ -1,6 +1,9 @@
-import { S, me, groupOf, store } from "../store.js";
+import { S, me, groupOf, store, nameOf } from "../store.js";
 import { splitBill } from "../fair.js";
 import { myPosition, ledgers, sharingCount } from "../model.js";
+import { overdue } from "../remind.js";
+import { wrappedTeaser } from "./wrapped.js";
+import { todayISO } from "../store.js";
 import { CATEGORIES } from "../icons.js";
 import { av, avStack, esc, icon, fmt, money, iconBtn, firstName, dateLabel, openSheet, sheetHead, closeSheet, go, empty, plural } from "../ui.js";
 
@@ -25,6 +28,8 @@ export function notifications() {
     let r = splitBill(b);
     if (r.disputed) out.push({ icon: "flag", title: `Disputed item on ${b.title}`, text: `${fmt(r.disputed)} is waiting to be sorted out.`, go: `bill/${b.id}` });
   }
+  for (let o of overdue(s, todayISO()))
+    out.push({ icon: "chat", title: `${nameOf(o.from)} hasn't paid ${fmt(o.amount)}`, text: `For ${o.what} · ${o.days} days ago. Tap to remind on WhatsApp.`, act: "tx-remind", from: o.from, group: o.groupId || "" });
   let days = s.prefs.lastBackup ? (Date.now() - s.prefs.lastBackup) / 864e5 : 999;
   if (s.bills.some((b) => b.status === "final") && days > 14 && !(s.prefs.backupSnooze > Date.now()))
     out.push({ icon: "download", title: "Back up your bills", text: "Your data lives only on this device. Export a backup in Settings.", go: "settings" });
@@ -50,12 +55,12 @@ export const Home = {
       : owed
         ? `Friends owe you <b class="blue">${fmt(owed)}</b> in total.`
         : `You're all square. Nothing to pay right now.`;
-    let cta = owe ? `<button class="btn primary pill-sm" data-go="settle">Pay Bills</button>` : owed ? `<button class="btn primary pill-sm" data-go="settle">Settle up</button>` : `<button class="btn primary pill-sm" data-go="scan">Scan a bill</button>`;
+    let cta = owe ? `<button class="btn primary pill-sm" data-go="settle">Pay Bills</button>` : owed ? `<button class="btn primary pill-sm" data-go="settle">Settle up</button>` : `<button class="btn primary pill-sm" data-act="quick-open">Add expense</button>`;
     return `<header class="home-top">${iconBtn("menu", "drawer", "Menu")}<div class="row-gap">${iconBtn("search", "go-search", "Search bills")}<button class="icon-btn" data-act="notifications" aria-label="Notifications${notes.length ? ` (${notes.length})` : ""}">${icon("bell")}${notes.length ? '<i class="dot"></i>' : ""}</button></div></header>
     <div class="screen-body">
       <section class="card welcome">
         <h2>Welcome back, ${esc(firstName(m?.name))}!</h2>
-        <p>${message}</p>
+        <p>${message.replace(/<b class="blue">([^<]+)<\/b>/, (_, v) => `<b class="blue" data-count="${(owe || owed)}">${v}</b>`)}</p>
         ${cta}
       </section>
       ${drafts
@@ -65,8 +70,9 @@ export const Home = {
             `<div class="draft-card"><a class="draft-main" href="#/bill/${b.id}/${b.items.length || b.mode !== "itemized" ? "assign" : "items"}"><span class="draft-ic">${icon("edit")}</span><span class="grow"><b>Continue “${esc(b.title || "Untitled bill")}”</b><small>Draft · ${plural(b.items.length, "item")} · ${fmt(money(b.total))}</small></span></a><button class="icon-btn plain" data-act="draft-discard" data-id="${b.id}" aria-label="Discard draft">${icon("x")}</button></div>`,
         )
         .join("")}
+      ${wrappedTeaser()}
       <div class="section-head"><h3>Recent Bills</h3>${recent.length ? `<a class="see-all" href="#/history">See All</a>` : ""}</div>
-      ${recent.length ? `<div class="stack-list">${recent.map(billCard).join("")}</div>` : `<section class="card">${empty(`<div class="empty-art">${icon("receipt")}</div>`, "No bills yet", "Scan a receipt or a food-app screenshot. We'll read the items for you.", `<button class="btn primary sm" data-go="scan">${icon("scan")} Scan a bill</button><button class="btn outline sm" data-go="sample">Try a sample</button>`)}</section>`}
+      ${recent.length ? `<div class="stack-list">${recent.map(billCard).join("")}</div>` : `<section class="card">${empty(`<div class="empty-art">${icon("receipt")}</div>`, "No bills yet", "Scan a receipt or a food-app screenshot. We'll read the items for you.", `<button class="btn primary sm" data-act="quick-open">${icon("plus")} Add expense</button><button class="btn outline sm" data-go="scan">${icon("scan")} Scan a bill</button><button class="link small" data-go="sample">Try a sample</button>`)}</section>`}
       <div class="section-head"><h3>Your Groups</h3><a class="see-all" href="#/groups">${groups.length ? "See All" : "Create"}</a></div>
       <div class="group-strip" data-scroll="groups">${groups
         .map((l) => {
@@ -91,7 +97,7 @@ function notesSheet() {
   let notes = notifications();
   return `${sheetHead("Notifications")}${
     notes.length
-      ? `<div class="notes">${notes.map((n) => `<a class="note" href="#/${n.go}" data-act="sheet-close-nav"><span class="note-ic">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</a>`).join("")}</div>`
+      ? `<div class="notes">${notes.map((n) => n.act ? `<button class="note" data-act="${n.act}" data-from="${n.from}" data-group="${n.group}"><span class="note-ic wa">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</button>` : `<a class="note" href="#/${n.go}" data-act="sheet-close-nav"><span class="note-ic">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</a>`).join("")}</div>`
       : empty(`<div class="empty-art">${icon("bell")}</div>`, "You're all caught up", "Drafts, disputes and reminders will show up here.")
   }`;
 }

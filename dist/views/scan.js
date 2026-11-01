@@ -1,4 +1,4 @@
-import { S, persist, store } from "../store.js";
+import { S, persist, store, todayISO } from "../store.js";
 import { parseText } from "../parse.js";
 import { parseWords } from "../layout.js";
 import { money } from "../core.js";
@@ -346,12 +346,25 @@ export const scanActions = {
   },
   "scan-paste": () =>
     openSheet(
-      () => `${sheetHead("Paste receipt text", "From a PDF bill, an email or a food-app order")}<form class="form" data-submit="scan-paste-go"><label class="field"><span class="sr">Receipt text</span><textarea id="paste-text" rows="9" placeholder="Paneer Tikka x 1 ₹240&#10;Butter Naan x 4 ₹160&#10;GST ₹20&#10;Total ₹420" autofocus></textarea></label><p class="form-error" id="paste-error" role="alert"></p><div class="sheet-actions"><button class="btn primary block" type="submit">Read text</button></div></form>`,
+      () => `${sheetHead("Paste text", "A receipt, a food-app order, or just “Uber 640 with Rohit”")}<form class="form" data-submit="scan-paste-go"><label class="field"><span class="sr">Receipt text</span><textarea id="paste-text" rows="9" placeholder="Paneer Tikka x 1 ₹240&#10;Butter Naan x 4 ₹160&#10;GST ₹20&#10;Total ₹420" autofocus></textarea></label><p class="form-error" id="paste-error" role="alert"></p><div class="sheet-actions"><button class="btn primary block" type="submit">Read text</button></div></form>`,
       { label: "Paste receipt text" },
     ),
-  "scan-paste-go": () => {
+  "scan-paste-go": async () => {
     let text = document.getElementById("paste-text")?.value || "",
-      parsed = parseText(text);
+      moneyLines = text.split(/\n/).filter((l) => /\d[\d,]*(\.\d{1,2})?\s*$/.test(l.trim())).length;
+    // One line like "Uber 640 with Rohit" is an expense, not a receipt.
+    if (moneyLines < 2 && text.trim()) {
+      let { parseQuick } = await import("../quick.js"),
+        { openQuick } = await import("./quick.js"),
+        st = S(),
+        p = parseQuick(text, { people: st.people, groups: st.groups, meId: st.meId, today: todayISO() });
+      closeSheet(true);
+      stopCamera();
+      reset();
+      go("home", true);
+      return openQuick({ ...p, text });
+    }
+    let parsed = parseText(text);
     if (!parsed.items.length) {
       let err = document.getElementById("paste-error");
       if (err) err.textContent = "No items found. Each line should have a name and a price, like “Masala Dosa 120”.";

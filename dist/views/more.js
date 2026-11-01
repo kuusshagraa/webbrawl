@@ -86,6 +86,12 @@ export const Insights = {
       people = Object.entries(byPerson).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => [nameOf(k), v, av(k, 24)]);
     return `${topbar("Insights", { left: '<span class="icon-spacer"></span>' })}
     <div class="screen-body">
+      ${(() => {
+        let now = todayISO().slice(0, 7),
+          prev = (() => { let [y, mo] = now.split("-").map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`; })(),
+          has = (ym) => s.bills.some((b) => b.status === "final" && b.date.startsWith(ym));
+        return has(now) || has(prev) ? `<div class="wr-links">${has(prev) ? `<a class="wr-teaser" href="#/wrapped/${prev}"><span class="wr-teaser-ic">✨</span><span class="grow"><b>${monthLabel(prev + "-01")} Wrapped</b><small>Your month in splits</small></span>${icon("next")}</a>` : ""}${has(now) ? `<a class="wr-teaser soft" href="#/wrapped/${now}"><span class="wr-teaser-ic">📈</span><span class="grow"><b>This month so far</b><small>${monthLabel(now + "-01")}</small></span>${icon("next")}</a>` : ""}</div>` : "";
+      })()}
       <div class="seg">${[["1m", "Last month"], ["6m", "6 months"], ["all", "All time"]].map(([k, l]) => `<button class="${range === k ? "on" : ""}" data-act="insight-range" data-k="${k}">${l}</button>`).join("")}</div>
       ${
         bills.length

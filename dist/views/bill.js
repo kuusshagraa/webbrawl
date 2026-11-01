@@ -4,7 +4,7 @@ import { tidyBill, makeItem, makeCharge, makePerson, billPeople, shareUrl, summa
 import { session } from "../session.js";
 import { CATEGORIES } from "../icons.js";
 import { categorize } from "../ocr.js";
-import { av, avStack, esc, icon, fmt, money, topbar, iconBtn, openSheet, closeSheet, sheetHead, refresh, commit, toast, go, back, confirmDialog, copyText, dateLabel, timeLabel, toggle, empty, plural, firstName, rupees } from "../ui.js";
+import { av, avStack, esc, icon, fmt, money, topbar, iconBtn, openSheet, closeSheet, sheetHead, refresh, commit, toast, go, back, confirmDialog, copyText, dateLabel, timeLabel, toggle, empty, plural, firstName, rupees, enter, confetti } from "../ui.js";
 import { editPerson, dietBadges } from "./people.js";
 
 /* ---------- helpers ---------- */
@@ -355,7 +355,7 @@ export function personCards(b, r, { getPerson = person, meId = S().meId, interac
         </div>`
         : "";
       return `<article class="person-total">
-        <header>${av(p || { name: "?" }, 44)}<b class="grow">${id === meId ? "Your Total" : `${pname(id)}’s Total`}</b><span class="amt">${fmt(share)}</span></header>
+        <header>${av(p || { name: "?" }, 44)}<b class="grow">${id === meId ? "Your Total" : `${pname(id)}’s Total`}</b>${interactive && b.status === "final" && b.payerId === meId && id !== meId && share > 0 ? `<button class="wa-mini" data-act="bill-wa" data-bill="${b.id}" data-id="${id}" aria-label="Ask ${pname(id)} on WhatsApp">${icon("chat")}</button>` : ""}<span class="amt">${fmt(share)}</span></header>
         ${itemLines ? `<div class="pitems">${itemLines}</div>` : ""}
         ${interactive ? `<button class="details-toggle" data-act="toggle-details" data-id="${id}" aria-expanded="${open}"><span>Bill Details</span><span class="chev ${open ? "up" : ""}">${icon("down")}</span></button>` : ""}
         ${details}
@@ -389,12 +389,13 @@ export const Summary = {
             `<label class="custom-row">${av(pid, 32)}<span class="grow">${esc(nameOf(pid))}</span><span class="amt-box"><span>${b.mode === "exact" ? "₹" : b.mode === "percent" ? "%" : "×"}</span><input data-f="cu:${pid}" data-in="custom-value" data-bill="${id}" data-id="${pid}" value="${esc(b.custom?.[pid] ?? "")}" inputmode="decimal" placeholder="0" aria-label="${esc(nameOf(pid))} ${b.mode}"></span></label>`,
         )
         .join("")}${errors.find((e) => e.field === "custom") ? `<p class="form-error">${esc(errors.find((e) => e.field === "custom").msg)}</p>` : ""}</div>`;
+    let printing = session.justSaved === id ? enter("print", id) && "printing" : "";
     return `${topbar("Bill Split Summary", { left: iconBtn("back", "summary-back", "Back", `data-id="${id}"`), right: iconBtn("share", "share-native", "Share", `data-id="${id}"`) })}
-    <div class="screen-body">
+    <div class="screen-body ${printing}">
       <section class="paper torn summary-head">
         <div class="paper-head"><h2>${esc(b.merchant || b.title)}</h2><p>${dateTime(b)}</p></div>
         ${b.merchant && b.title !== b.merchant ? `<p class="center muted small">${esc(b.title)}</p>` : ""}
-        <div class="sum-total"><small>Total bill</small><b>${fmt(r.total)}</b><button class="payer-chip" data-act="payer-sheet" data-id="${id}">${av(b.payerId, 24)}Paid by ${esc(nameOf(b.payerId))}${icon("down")}</button></div>
+        <div class="sum-total"><small>Total bill</small><b data-count="${r.total}" data-count-key="${id}">${fmt(r.total)}</b><button class="payer-chip" data-act="payer-sheet" data-id="${id}">${av(b.payerId, 24)}Paid by ${esc(nameOf(b.payerId))}${icon("down")}</button></div>
         ${final && b.recurringId ? `<p class="center badge-line"><span class="badge">${icon("repeat")} Monthly</span></p>` : ""}
       </section>
       ${disputedItems.length ? `<section class="notice warn tray">${icon("flag")}<div class="grow"><b>${plural(disputedItems.length, "disputed item")} · ${fmt(r.disputed)}</b><p>Held with ${esc(nameOf(b.payerId))} until someone claims it.</p>${disputedItems.map((it) => `<button class="tray-item" data-act="resolve-item" data-bill="${id}" data-id="${it.id}">${esc(it.name)} · ${rupees(it.amount)}<span>Resolve ${icon("next")}</span></button>`).join("")}</div></section>` : ""}
@@ -734,6 +735,10 @@ export const billActions = {
   // Summary screen
   "summary-back": (el) => {
     let b = bill(el.dataset.id);
+    if (b?.status === "final" && session.justSaved === b.id) {
+      session.justSaved = null;
+      return go("home");
+    }
     if (b?.status === "final") return back("home");
     go(`bill/${el.dataset.id}/assign`, true);
   },
@@ -785,9 +790,11 @@ export const billActions = {
       delete x.repeat;
     });
     session.photos.delete(id);
+    session.justSaved = id;
+    if (!S().bills.some((x) => x.status === "final" && x.id !== id)) confetti();
     if (session.queue.length) toast(`Saved! ${plural(session.queue.length, "receipt")} left to scan.`, { action: { label: "Scan next", fn: () => go("scan?next=1") } });
-    else toast(`Saved!${b.participants.length > 1 ? " Balances are updated in Settle up." : ""}`, { action: { label: "Copy link", fn: () => billActions["copy-link"]({ dataset: { id } }) } });
-    go("home", true);
+    else toast(b.payerId === S().meId && b.participants.length > 1 ? "Saved! Tap the green buttons to ask on WhatsApp." : "Saved! Balances are updated in Settle up.");
+    go(`bill/${id}`, true);
   },
   "copy-link": async (el) => {
     let b = bill(el.dataset.id);
@@ -832,6 +839,7 @@ export const billActions = {
     go("home", true);
     commit((s) => (s.bills = s.bills.filter((x) => x.id !== b.id)), "Bill deleted");
   },
+  "bill-wa": (el) => import("./quick.js").then((m) => m.sendNudge(el.dataset.bill, el.dataset.id)),
   "draft-discard": async (el, e) => {
     e?.preventDefault();
     let b = bill(el.dataset.id);

@@ -931,3 +931,48 @@ button.note { width: 100%; text-align: left; }
 .printing .person-total:nth-child(n + 5) { animation-delay: 0.75s; }
 .printing .person-total:first-child { animation-delay: 0.35s; }
 @keyframes print { from { clip-path: inset(-20px 0 100% 0); transform: translateY(-14px); } to { clip-path: inset(-20px 0 -20px 0); transform: none; } }
+
+/* ---------- Wrapped ---------- */
+.wr { position: relative; min-height: 100dvh; color: #fff; display: flex; flex-direction: column; overflow: hidden; padding: calc(16px + env(safe-area-inset-top)) 22px 28px; transition: background 0.4s; }
+.wr-a { background: radial-gradient(circle at 20% 10%, #6b78f2, #4353e6 45%, #2a35a8); }
+.wr-b { background: radial-gradient(circle at 80% 10%, #ffb37a, #f26b4f 50%, #b8402b); }
+.wr-c { background: radial-gradient(circle at 30% 20%, #7fe0bf, #2e9e6a 50%, #1b6b47); }
+.wr-d { background: radial-gradient(circle at 70% 20%, #ffe28a, #f5b400 50%, #b07a00); color: #1b1b1f; }
+.wr-e { background: radial-gradient(circle at 20% 80%, #b4a9ff, #8b7cf6 50%, #5a47c9); }
+.wr-f { background: linear-gradient(160deg, #1b1b2f, #2a2b45); }
+.wr-bars { display: flex; gap: 5px; margin-bottom: 10px; z-index: 3; }
+.wr-bars i { flex: 1; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.3); overflow: hidden; position: relative; }
+.wr-d .wr-bars i { background: rgba(0, 0, 0, 0.15); }
+.wr-bars i.done::after, .wr-bars i.now::after { content: ""; position: absolute; inset: 0; background: currentColor; transform-origin: left; }
+.wr-bars i.now::after { animation: wrbar var(--dur, 0s) linear forwards; }
+.wr-bars i.now:not([style])::after { animation: none; }
+@keyframes wrbar { from { transform: scaleX(0); } }
+.wr-x { align-self: flex-end; z-index: 3; }
+.wr-d .wr-x { color: #1b1b1f; background: rgba(0, 0, 0, 0.08); }
+.wr-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 12px; z-index: 1; padding-bottom: 40px; }
+.wr-body.enter > * { animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.wr-body.enter > *:nth-child(2) { animation-delay: 0.08s; }
+.wr-body.enter > *:nth-child(3) { animation-delay: 0.16s; }
+.wr-body.enter > *:nth-child(4) { animation-delay: 0.24s; }
+.wr-body.enter > *:nth-child(5) { animation-delay: 0.32s; }
+.wr-body small { text-transform: uppercase; letter-spacing: 0.14em; font-size: 12.5px; font-weight: 600; opacity: 0.8; }
+.wr-body h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; }
+.wr-body h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.wr-body p { font-size: 16px; opacity: 0.88; max-width: 300px; }
+.wr-big { font-size: 52px !important; font-weight: 800; letter-spacing: -0.03em; opacity: 1 !important; font-variant-numeric: tabular-nums; }
+.wr-emoji { font-size: 84px; line-height: 1; filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.2)); }
+.wr .av.ring { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.9), 0 0 0 14px rgba(255, 255, 255, 0.18); }
+.wr-tap { position: absolute; top: 70px; bottom: 0; z-index: 2; }
+.wr-tap.prev { left: 0; width: 33%; }
+.wr-tap.next { right: 0; width: 67%; }
+.wr-card { width: min(78vw, 320px); border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+.wr-actions { display: flex; gap: 10px; margin-top: 10px; }
+.btn.ghost-light { color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+.wr-teaser { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-lg); background: linear-gradient(120deg, #4353e6, #8b7cf6 60%, #f26b4f); color: #fff; margin: 0 0 12px; box-shadow: 0 10px 26px rgba(67, 83, 230, 0.3); }
+.wr-teaser b { display: block; font-weight: 600; }
+.wr-teaser small { opacity: 0.85; font-size: 13px; }
+.wr-teaser .ic { opacity: 0.8; }
+.wr-teaser.soft { background: #fff; color: var(--ink); box-shadow: var(--shadow); }
+.wr-teaser-ic { width: 40px; height: 40px; border-radius: 14px; background: rgba(255, 255, 255, 0.2); display: grid; place-items: center; font-size: 20px; flex: none; }
+.wr-teaser.soft .wr-teaser-ic { background: var(--primary-soft); }
+@media (min-width: 640px) { .wr { min-height: calc(100dvh - 40px); border-radius: 36px; } }

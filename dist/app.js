@@ -13,6 +13,7 @@ import { Friends, friendActions, personActions, studioActions } from "./views/pe
 import { Groups, Group, Settle, groupActions } from "./views/groups.js";
 import { History, Insights, Settings, moreActions } from "./views/more.js";
 import { quickActions, openQuick, quickKey } from "./views/quick.js";
+import { Wrapped, wrappedActions } from "./views/wrapped.js";
 
 const actions = {
   ...studioActions,
@@ -27,6 +28,7 @@ const actions = {
   ...groupActions,
   ...moreActions,
   ...quickActions,
+  ...wrappedActions,
   back: () => back("home"),
   "sheet-close": () => closeSheet(),
   "confirm-yes": () => resolveConfirm(true),
@@ -50,6 +52,7 @@ const ROUTES = [
   [/^history$/, History],
   [/^insights$/, Insights],
   [/^settings$/, Settings],
+  [/^wrapped\/(\d{4}-\d{2})$/, Wrapped, ["month"]],
 ];
 
 let current = { view: null, params: {}, path: "" };

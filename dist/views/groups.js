@@ -1,7 +1,9 @@
 import { S, person, groupOf, nameOf, newId, todayISO } from "../store.js";
 import { money } from "../core.js";
-import { ledgers } from "../model.js";
-import { av, avStack, esc, icon, fmt, topbar, iconBtn, openSheet, closeSheet, sheetHead, refresh, commit, toast, go, confirmDialog, copyText, empty, plural, dateLabel, toggle, firstName } from "../ui.js";
+import { ledgers, shareUrl, myPosition } from "../model.js";
+import { nudgeText, waLink } from "../nudge.js";
+import { overdue } from "../remind.js";
+import { av, avStack, esc, icon, fmt, topbar, iconBtn, openSheet, closeSheet, sheetHead, refresh, commit, toast, go, confirmDialog, copyText, empty, plural, dateLabel, toggle, firstName, confetti } from "../ui.js";
 import { billCard } from "./home.js";
 import { editPerson } from "./people.js";
 
@@ -78,7 +80,7 @@ function drawQr() {
 function txRow(t, groupId, i) {
   let me = S().meId,
     mine = t.from === me || t.to === me;
-  return `<div class="tx ${mine ? "mine" : ""}">${av(t.from, 40)}<span class="tx-arrow">${icon("arrowRight")}</span>${av(t.to, 40)}<span class="grow"><b>${esc(nameOf(t.from))} ${t.from === me ? "pay" : "pays"} ${esc(t.to === me ? "you" : nameOf(t.to))}</b><small>${fmt(t.amount)}</small></span><span class="tx-actions"><button class="btn sm outline" data-act="upi-open" data-group="${groupId || ""}" data-i="${i}" aria-label="Pay with UPI">${icon("qr")}</button><button class="btn sm primary" data-act="tx-paid" data-group="${groupId || ""}" data-i="${i}">Paid</button></span></div>`;
+  return `<div class="tx ${mine ? "mine" : ""}">${av(t.from, 40)}<span class="tx-arrow">${icon("arrowRight")}</span>${av(t.to, 40)}<span class="grow"><b>${esc(nameOf(t.from))} ${t.from === me ? "pay" : "pays"} ${esc(t.to === me ? "you" : nameOf(t.to))}</b><small>${fmt(t.amount)}</small></span><span class="tx-actions">${t.to === me ? `<button class="btn sm wa icon-only" data-act="tx-remind" data-group="${groupId || ""}" data-from="${t.from}" aria-label="Remind ${esc(nameOf(t.from))} on WhatsApp">${icon("chat")}</button>` : ""}<button class="btn sm outline" data-act="upi-open" data-group="${groupId || ""}" data-i="${i}" aria-label="Pay with UPI">${icon("qr")}</button><button class="btn sm primary" data-act="tx-paid" data-group="${groupId || ""}" data-i="${i}">Paid</button></span></div>`;
 }
 const findTx = (groupId, i) => ledgers().find((l) => (l.groupId || "") === (groupId || ""))?.tx[Number(i)];
 
@@ -243,10 +245,30 @@ export const groupActions = {
     let ok = await confirmDialog({ title: "Mark as paid?", body: `${esc(nameOf(t.from))} paid ${esc(nameOf(t.to, true) === "You" ? "you" : nameOf(t.to))} <b>${fmt(t.amount)}</b>.`, ok: "Yes, paid" });
     if (!ok) return;
     commit((s) => s.settlements.push({ id: newId(), groupId: el.dataset.group || null, from: t.from, to: t.to, amount: t.amount / 100, date: todayISO() }), "Payment recorded");
+    let pos = myPosition();
+    if ((t.from === S().meId || t.to === S().meId) && !pos.owe && !pos.owed) {
+      confetti();
+      toast("All square! Nobody owes anybody. 🎉");
+    }
   },
   "tx-undo": async (el) => {
     let ok = await confirmDialog({ title: "Remove this payment?", body: "Balances will go back to how they were before it.", ok: "Remove", danger: true });
     if (ok) commit((s) => (s.settlements = s.settlements.filter((t) => t.id !== el.dataset.id)), "Payment removed");
   },
+  "tx-remind": (el) => remind(el.dataset.from, el.dataset.group || null),
   "set-ignore": (el) => commit((s) => (s.prefs.ignoreUnder = Number(el.dataset.v))),
 };
+
+// Opens WhatsApp with a friendly ask for what `from` owes me in one ledger.
+export async function remind(from, groupId) {
+  let s = S(),
+    t = ledgers().find((l) => (l.groupId || null) === (groupId || null))?.tx.find((x) => x.from === from && x.to === s.meId);
+  if (!t) return;
+  let due = overdue(s, todayISO(), 0).find((o) => o.from === from && (o.groupId || null) === (groupId || null)),
+    bill = due && s.bills.find((b) => b.id === due.billId),
+    link = "";
+  if (bill && !due.what.includes(" more")) link = await shareUrl(bill).catch(() => "");
+  let p = person(from),
+    text = nudgeText({ name: p?.name, amount: t.amount, billTitle: due?.what || groupOf(groupId)?.name || "our bills", category: bill?.category, upi: person(s.meId)?.upi, link, days: due?.days || 0 });
+  window.open(waLink(text, p?.phone), "_blank", "noopener");
+}

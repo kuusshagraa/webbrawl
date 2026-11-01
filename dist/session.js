@@ -6,4 +6,5 @@ export const session = {
   edit: null, // { id, json } while a saved bill is being edited
   badFields: new Set(), // fields to highlight after a failed Continue
   openDetails: new Set(), // person ids whose "Bill Details" are expanded
+  justSaved: null, // bill id to play the receipt "print" animation for
 };

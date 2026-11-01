@@ -2,7 +2,7 @@ import { initStore, onPersistError, store, S, me, bill, persist, restore } from 
 import { validateBill } from "./fair.js";
 import { myPosition, ledgers, makeBill, makeItem, sampleBill, tidyBill } from "./model.js";
 import { session } from "./session.js";
-import { av, esc, icon, fmt, fixButtons, countUp, setRenderer, go, back, toast, drawSheets, closeSheet, sheetOpen, trapFocus, resolveConfirm, openSheet, sheetHead, download, commit, firstName } from "./ui.js";
+import { av, esc, icon, fmt, fixButtons, countUp, enter, setRenderer, go, back, toast, drawSheets, closeSheet, sheetOpen, trapFocus, resolveConfirm, openSheet, sheetHead, download, commit, firstName } from "./ui.js";
 import { Onboarding, onboardingActions } from "./views/onboarding.js";
 import { Home, homeActions } from "./views/home.js";
 import { Scan, scanActions } from "./views/scan.js";
@@ -123,13 +123,25 @@ function route() {
     }
   }
   current = { view, params, path };
-  render();
-  if (changed) {
-    window.scrollTo(0, 0);
-    view.mount?.(params);
-    document.title = `${view.title || "SplitSmart"} · SplitSmart`;
-  }
+  let finish = () => {
+    render();
+    if (changed) {
+      window.scrollTo(0, 0);
+      view.mount?.(params);
+      document.title = `${view.title || "SplitSmart"} · SplitSmart`;
+    }
+  };
+  // Direction for the CSS slide-in of the new screen (View Transitions
+  // crashed Chromium when named elements were involved, so plain CSS it is).
+  let depth = history.state?.depth || 0;
+  if (changed) screenDir = !lastPath ? "" : depth < lastDepth ? "back" : "forward";
+  finish();
+  lastDepth = depth;
+  lastPath = path;
 }
+let lastDepth = 0,
+  lastPath = "",
+  screenDir = "";
 
 /* ---------- Shell ---------- */
 
@@ -197,7 +209,7 @@ function render() {
       aside = view.aside?.(params) ?? (view.full ? "" : defaultAside());
     app.innerHTML = `<div class="shell ${view.full ? "full" : ""} ${view.dark ? "dark" : ""} ${showRail ? "" : "no-rail"}">
       ${showRail ? rail(path) : ""}
-      <main class="main" id="main"><div class="screen ${view.tabs ? "has-tabs" : ""}">${html}</div>${view.tabs && showRail ? tabbar(path) : ""}</main>
+      <main class="main" id="main"><div class="screen ${view.tabs ? "has-tabs" : ""} ${screenDir && enter("screen", path) ? "slide-" + screenDir : ""}">${html}</div>${view.tabs && showRail ? tabbar(path) : ""}</main>
       ${aside && showRail ? `<aside class="side" aria-label="Summary">${aside}</aside>` : ""}
     </div>`;
   }

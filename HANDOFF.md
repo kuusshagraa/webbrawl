@@ -40,7 +40,7 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 
 Specs: `docs/superpowers/specs/2026-11-01-splitsmart-redesign-design.md` (main app) and `docs/superpowers/specs/2026-11-01-quick-add-delight-design.md` (current work). Read the second one before continuing.
 
-## Current work: "Quick Add + delight" (branch `quick-add`)
+## Last completed work: "Quick Add + delight" (merged in PR #3)
 
 Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps instead of ~12, plus delight features. The user approved: centre **+** opens a Quick Add sheet (scan inside it), sentence + voice input, keep the scan flow's steps, and all four delight features.
 
@@ -56,7 +56,7 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 - [x] Motion: CSS slide-in between screens, count-up totals, receipt "print" on the summary after saving (save now stays on the summary), confetti on first save and when all square, Android haptics. **Do not use the View Transitions API**: any named transition element crashed Chromium on the second transition.
 - [x] Monthly Wrapped (`dist/wrapped.js` stats tested, `views/wrapped.js` story + canvas share card, Home teaser days 1–7, Insights links)
 - [x] Browser tests in Chromium and WebKit, no overflow on 15 screens at 360/768/1024/1440 px, README updated
-- [ ] PR, merge, check the live site (in progress)
+- [x] PR #3 merged and live; Quick Add verified on the production site in WebKit
 
 ### How to build each remaining piece
 

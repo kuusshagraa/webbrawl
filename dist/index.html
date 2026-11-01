@@ -2,21 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#f4f5ee" />
-    <meta
-      name="description"
-      content="Split the good times, not your friendships."
-    />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f8" />
+    <meta name="description" content="Scan a bill, pay only for what you had, settle up without the awkward chat." />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="style.css" />
-    <title>SplitSmart — make shared spending simple</title>
+    <title>SplitSmart</title>
   </head>
   <body>
     <div id="app"></div>
-    <div id="modal"></div>
-    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="sheet"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <noscript>SplitSmart needs JavaScript to run.</noscript>
     <script type="module" src="app.js"></script>
   </body>
 </html>

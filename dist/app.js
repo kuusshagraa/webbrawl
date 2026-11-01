@@ -332,4 +332,20 @@ if (notice?.type === "corrupt") {
   actions["download-corrupt"] = () => download("splitsmart-damaged-data.txt", localStorage.getItem(notice.key) || "", "text/plain");
 }
 
+// Hosting badges (e.g. Netlify's free-plan "Powered by Netlify") float over
+// the bottom-right corner. Measure one if present and lift our bottom
+// controls above it rather than hiding someone else's attribution.
+function watchHostBadge() {
+  let measure = () => {
+    let f = document.getElementById("nl-badge-frame"),
+      r = f?.getBoundingClientRect(),
+      inset = r && r.height && r.bottom > innerHeight - 120 ? Math.round(innerHeight - r.top + 8) : 0;
+    document.documentElement.style.setProperty("--host-inset", inset + "px");
+  };
+  new MutationObserver(measure).observe(document.body, { childList: true });
+  addEventListener("resize", measure);
+  measure();
+}
+watchHostBadge();
+
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});

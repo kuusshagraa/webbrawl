@@ -11,7 +11,7 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 - **No build step.** Plain ES modules in `dist/`, served as static files. Don't add a bundler or framework.
 - **Match the existing code style:** small pure modules for logic, views as functions returning HTML strings, `data-act` event delegation. Escape all user text with `esc()`.
 - **Money is integer paise** inside the engine (`money()` in `core.js`). Splits must always add up exactly to the total; there is a property test for this.
-- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 63 tests pass.
+- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 66 tests pass.
 - **Run locally:** `python3 -m http.server 8001 --directory dist`, then open http://localhost:8001. Use a new port or a private window to see onboarding from scratch.
 - **Ship:** branch → PR to `main` (repo `kuusshagraa/webbrawl`) → wait for the Netlify deploy preview check to pass → merge. Commit messages end with a `Co-Authored-By` line.
 - Design language: lavender/peach gradient background, white cards, primary blue `#4353E6`, Plus Jakarta Sans, torn-receipt card edges, illustrated avatars. Tokens are at the top of `dist/style.css`.
@@ -25,7 +25,10 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 | `parse.js` | `parseText`: receipt/food-app text → items, charges, total, merchant, date |
 | `layout.js` | `parseWords`: OCR words with positions → rows (tilt-corrected), fused-number splitting, wrapped names → `parseText` |
 | `ocr.js` | PaddleOCR PP-OCRv5 in the browser (onnxruntime-web from jsDelivr, models from mirrors with stall detection, cached), Tesseract fallback, image rotate/crop/enhance, category model |
-| `quick.js` | **New:** `parseQuick` sentence parser ("Uber 640 with Rohit and Aman"), `inferCategory`, `templates` (repeat suggestions) |
+| `quick.js` | `parseQuick` sentence parser ("Uber 640 with Rohit and Aman"), `inferCategory`, `templates` (repeat suggestions) |
+| `nudge.js` | WhatsApp message text and `wa.me` links |
+| `remind.js` | `overdue()`: money owed to me for 3+ days |
+| `wrapped.js` | `monthStats()` for the monthly Wrapped story |
 | `share.js` | Encodes a bill into a URL (`#/s/<payload>`) and back |
 | `store.js` | v2 storage, v1 migration, corruption recovery, backups, monthly recurrence, selectors |
 | `model.js` | Domain helpers: `makeBill`, `makeItem`, `makePerson`, `tidyBill`, ledgers, share text, CSV, sample bill |
@@ -51,8 +54,9 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 - [x] WhatsApp nudges: `dist/nudge.js` (tested), Quick Add success, summary person cards, Settle up "Remind", optional phone on people
 - [x] Payment reminders in the bell (`dist/remind.js`, tested)
 - [x] Motion: CSS slide-in between screens, count-up totals, receipt "print" on the summary after saving (save now stays on the summary), confetti on first save and when all square, Android haptics. **Do not use the View Transitions API**: any named transition element crashed Chromium on the second transition.
-- [ ] Monthly Wrapped (`dist/wrapped.js` stats + story view + share image)
-- [ ] Browser test in Chromium and WebKit, overflow check at 360/768/1024/1440 px, update README, PR, merge, check the live site
+- [x] Monthly Wrapped (`dist/wrapped.js` stats tested, `views/wrapped.js` story + canvas share card, Home teaser days 1–7, Insights links)
+- [x] Browser tests in Chromium and WebKit, no overflow on 15 screens at 360/768/1024/1440 px, README updated
+- [ ] PR, merge, check the live site (in progress)
 
 ### How to build each remaining piece
 
@@ -105,3 +109,10 @@ Goal: a one-line expense (e.g. "I paid ₹640 for Uber") should take 3–4 taps 
 - **Buttons inside forms** default to `type=submit`; `fixButtons()` makes untyped buttons `type="button"` after each render. Use an explicit `type="submit"` for submit buttons.
 - **Test in WebKit too** (Safari is the main phone browser): `npx playwright install webkit`. Several bugs only appeared there.
 - **Netlify serves large binaries slowly**; OCR models load from jsDelivr/Hugging Face mirrors first (`ocr.js`).
+
+## Ideas not built yet (good next steps)
+
+- Verify voice input and the live camera on real phones (iPhone Safari, Android Chrome).
+- Dark mode (tokens are already CSS variables).
+- Remote claiming: friends pick their items from the shared link (needs a small backend).
+- Push notifications for reminders (needs a service-worker push setup and a server).

@@ -8,6 +8,12 @@ Scan a bill, pay only for what you had, and settle up without the awkward group 
 
 Requires Node.js 18+ for tests. Serve `dist/` with any static server (`npx serve dist` or `python3 -m http.server 8000 --directory dist`) and open the URL. HTTPS or localhost is needed for the camera, service worker and install prompt. `npm test` runs the engine, parser, sharing and storage tests. No build step or API key.
 
+## Adding an expense in seconds
+
+Tap **+** and either type or say a sentence such as "Uber 640 with Rohit and Aman" ("Rohit paid 1.2k dinner with everyone", "auto 80 for Aman", "yesterday swiggy 450 with hostel wing" also work), or use the keypad: amount, what for, tap faces, Save. Recent repeats appear as one-tap suggestions. After saving, WhatsApp buttons send each person a ready-made message with their share, your UPI ID and a link to the breakdown. Receipts still go through the scanner below.
+
+Extras: reminders in the bell when someone hasn't paid for 3+ days, a monthly **Wrapped** story (total shared, top category, the group's "ATM", crowd favourite, what your food tags saved you) with a shareable image, screen slide-ins, a receipt "print" when you save, and confetti when everyone is square.
+
 ## How it works
 
 1. **Onboarding:** your name, an illustrated avatar (or a photo), food preferences (veg, no egg, no alcohol), an optional UPI ID and your usual crew.
@@ -66,6 +72,6 @@ Both test receipts are in `tests/fixtures/` as real OCR output.
 
 ## Code map
 
-`dist/core.js` money and settlement · `fair.js` fair-split engine · `parse.js` receipt and food-app parser · `share.js` links · `store.js` storage, migration, recurrence · `model.js` domain helpers · `ui.js`, `icons.js`, `avatar.js` UI kit · `views/` screens · `app.js` router and shell.
+`dist/core.js` money and settlement · `fair.js` fair-split engine · `parse.js` receipt and food-app parser · `quick.js` sentence parser · `nudge.js` WhatsApp messages · `remind.js` overdue dues · `wrapped.js` monthly stats · `share.js` links · `store.js` storage, migration, recurrence · `model.js` domain helpers · `ui.js`, `icons.js`, `avatar.js` UI kit · `views/` screens · `app.js` router and shell.
 
 Verified in the browser at 360, 768, 1024 and 1440 px with no horizontal overflow, including real OCR of a test receipt.

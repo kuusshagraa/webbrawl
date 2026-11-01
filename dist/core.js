@@ -1,9 +1,156 @@
-export const money=n=>Math.round((Number(n)||0)*100);
-export const fmt=n=>'₹'+(n/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+export const money = (n) => Math.round((Number(n) || 0) * 100);
+export const fmt = (n) =>
+  "₹" +
+  (n / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 // Largest remainder, with ties resolved by original member order.
-export function allocate(total, weights){total=Math.round(total);let sign=total<0?-1:1;total=Math.abs(total);let sum=weights.reduce((a,b)=>a+Math.max(0,b),0);if(!sum)return weights.map(()=>0);let raw=weights.map(w=>total*Math.max(0,w)/sum), out=raw.map(Math.floor), left=total-out.reduce((a,b)=>a+b,0);raw.map((v,i)=>({i,r:v-out[i]})).sort((a,b)=>b.r-a.r||a.i-b.i).slice(0,left).forEach(x=>out[x.i]++);return out.map(x=>x*sign)}
-export function splitExpense(e,members){let ids=members.map(m=>m.id), total=money(e.total);let shares=ids.map(()=>0);if(e.mode==='itemized'){for(const item of e.items){let amount=money(item.qty*item.price), weights=ids.map(id=>item.assigned.includes(id)?1:0), part=allocate(amount,weights);shares=shares.map((x,i)=>x+part[i])}let adjustment=total-shares.reduce((a,b)=>a+b,0);let extra=allocate(adjustment,shares);shares=shares.map((x,i)=>x+extra[i]);}else {let weights=ids.map(id=>e.participants.includes(id)?(e.mode==='equal'?1:Number(e.values[id])||0):0);shares= e.mode==='exact'?weights.map(money):allocate(total,weights)}return Object.fromEntries(ids.map((id,i)=>[id,shares[i]]))}
-export function balances(group){let b=Object.fromEntries(group.members.map(m=>[m.id,0]));for(const e of group.expenses){if(!(e.payer in b))continue;let s=splitExpense(e,group.members);b[e.payer]+=money(e.total);for(const id in s)b[id]-=s[id]}for(const s of group.settlements){if(s.from in b&&s.to in b){b[s.from]+=s.amount;b[s.to]-=s.amount}}return b}
+export function allocate(total, weights) {
+  total = Math.round(total);
+  let sign = total < 0 ? -1 : 1;
+  total = Math.abs(total);
+  let sum = weights.reduce((a, b) => a + Math.max(0, b), 0);
+  if (!sum) return weights.map(() => 0);
+  let raw = weights.map((w) => (total * Math.max(0, w)) / sum),
+    out = raw.map(Math.floor),
+    left = total - out.reduce((a, b) => a + b, 0);
+  raw
+    .map((v, i) => ({ i, r: v - out[i] }))
+    .sort((a, b) => b.r - a.r || a.i - b.i)
+    .slice(0, left)
+    .forEach((x) => out[x.i]++);
+  return out.map((x) => x * sign);
+}
+export function splitExpense(e, members) {
+  let ids = members.map((m) => m.id),
+    total = money(e.total);
+  let shares = ids.map(() => 0);
+  if (e.mode === "itemized") {
+    for (const item of e.items) {
+      let amount = money(item.qty * item.price),
+        weights = ids.map((id) => (item.assigned.includes(id) ? 1 : 0)),
+        part = allocate(amount, weights);
+      shares = shares.map((x, i) => x + part[i]);
+    }
+    let adjustment = total - shares.reduce((a, b) => a + b, 0);
+    let extra = allocate(adjustment, shares);
+    shares = shares.map((x, i) => x + extra[i]);
+  } else {
+    let weights = ids.map((id) =>
+      e.participants.includes(id)
+        ? e.mode === "equal"
+          ? 1
+          : Number(e.values[id]) || 0
+        : 0,
+    );
+    shares = e.mode === "exact" ? weights.map(money) : allocate(total, weights);
+  }
+  return Object.fromEntries(ids.map((id, i) => [id, shares[i]]));
+}
+export function balances(group) {
+  let b = Object.fromEntries(group.members.map((m) => [m.id, 0]));
+  for (const e of group.expenses) {
+    if (!(e.payer in b)) continue;
+    let s = splitExpense(e, group.members);
+    b[e.payer] += money(e.total);
+    for (const id in s) b[id] -= s[id];
+  }
+  for (const s of group.settlements) {
+    if (s.from in b && s.to in b) {
+      b[s.from] += s.amount;
+      b[s.to] -= s.amount;
+    }
+  }
+  return b;
+}
 // Backtracking searches all distinct balance pairings for a true minimum.
-export function settle(b){let entries=Object.entries(b).filter(([,v])=>v!==0);let vals=entries.map(x=>x[1]), best=null;function dfs(start,tx){while(start<vals.length&&vals[start]===0)start++;if(start===vals.length){if(!best||tx.length<best.length)best=tx.slice();return}if(best&&tx.length>=best.length)return;let seen=new Set();for(let i=start+1;i<vals.length;i++){if(vals[start]*vals[i]>=0||seen.has(vals[i]))continue;seen.add(vals[i]);let a=vals[start], old=vals[i], amount=Math.abs(a);vals[i]+=a;tx.push(a<0?{from:entries[start][0],to:entries[i][0],amount}:{from:entries[i][0],to:entries[start][0],amount});dfs(start+1,tx);tx.pop();vals[i]=old;if(old+a===0)break}}dfs(0,[]);return best||[]}
-export function parseReceipt(text, low=[]){let items=[], charges=[], total='';for(let line of text.split(/\n/)){line=line.trim();if(!line||/gstin|phone|tel\b|address|thank|fssai|invoice|date\b|cashier|\b(road|street)\b/i.test(line))continue;let match=line.match(/^(.*?)[\s:]+(?:₹|rs\.?\s*)?(-?\d[\d,]*(?:\.\d{1,2})?)\s*$/i);if(!match)continue;let name=match[1].trim(), value=Number(match[2].replace(/,/g,''));if(!name||!Number.isFinite(value))continue;if(/^(grand\s*)?total\b|amount\s*(due|payable)|net\s*(amount|total)/i.test(name)){total=value;continue}if(/subtotal|sub total/i.test(name))continue;if(/cgst|sgst|igst|\bgst\b|tax|service|discount|round\s*off/i.test(name)){charges.push({name,amount:/discount/i.test(name)?-Math.abs(value):value});continue}if(!/[a-z]/i.test(name))continue;let qty=1, price=value;let qm=name.match(/^(.*?)\s+(\d+)\s*[xX]\s*(\d+(?:\.\d+)?)$/);if(qm){name=qm[1];qty=Number(qm[2]);price=Number(qm[3])}items.push({name,qty,price,category:'Other',assigned:[],low:low.some(w=>name.toLowerCase().includes(w.toLowerCase()))})}return {items,charges,total}}
+export function settle(b) {
+  let entries = Object.entries(b).filter(([, v]) => v !== 0);
+  let vals = entries.map((x) => x[1]),
+    best = null;
+  function dfs(start, tx) {
+    while (start < vals.length && vals[start] === 0) start++;
+    if (start === vals.length) {
+      if (!best || tx.length < best.length) best = tx.slice();
+      return;
+    }
+    if (best && tx.length >= best.length) return;
+    let seen = new Set();
+    for (let i = start + 1; i < vals.length; i++) {
+      if (vals[start] * vals[i] >= 0 || seen.has(vals[i])) continue;
+      seen.add(vals[i]);
+      let a = vals[start],
+        old = vals[i],
+        amount = Math.abs(a);
+      vals[i] += a;
+      tx.push(
+        a < 0
+          ? { from: entries[start][0], to: entries[i][0], amount }
+          : { from: entries[i][0], to: entries[start][0], amount },
+      );
+      dfs(start + 1, tx);
+      tx.pop();
+      vals[i] = old;
+      if (old + a === 0) break;
+    }
+  }
+  dfs(0, []);
+  return best || [];
+}
+export function parseReceipt(text, low = []) {
+  let items = [],
+    charges = [],
+    total = "";
+  for (let line of text.split(/\n/)) {
+    line = line.trim();
+    if (
+      !line ||
+      /gstin|phone|tel\b|address|thank|fssai|invoice|date\b|cashier|\b(road|street)\b/i.test(
+        line,
+      )
+    )
+      continue;
+    let match = line.match(
+      /^(.*?)[\s:]+(?:₹|rs\.?\s*)?(-?\d[\d,]*(?:\.\d{1,2})?)\s*$/i,
+    );
+    if (!match) continue;
+    let name = match[1].trim(),
+      value = Number(match[2].replace(/,/g, ""));
+    if (!name || !Number.isFinite(value)) continue;
+    if (
+      /^(grand\s*)?total\b|amount\s*(due|payable)|net\s*(amount|total)/i.test(
+        name,
+      )
+    ) {
+      total = value;
+      continue;
+    }
+    if (/subtotal|sub total/i.test(name)) continue;
+    if (/cgst|sgst|igst|\bgst\b|tax|service|discount|round\s*off/i.test(name)) {
+      charges.push({
+        name,
+        amount: /discount/i.test(name) ? -Math.abs(value) : value,
+      });
+      continue;
+    }
+    if (!/[a-z]/i.test(name)) continue;
+    let qty = 1,
+      price = value;
+    let qm = name.match(/^(.*?)\s+(\d+)\s*[xX]\s*(\d+(?:\.\d+)?)$/);
+    if (qm) {
+      name = qm[1];
+      qty = Number(qm[2]);
+      price = Number(qm[3]);
+    }
+    items.push({
+      name,
+      qty,
+      price,
+      category: "Other",
+      assigned: [],
+      low: low.some((w) => name.toLowerCase().includes(w.toLowerCase())),
+    });
+  }
+  return { items, charges, total };
+}

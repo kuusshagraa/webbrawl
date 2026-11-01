@@ -2,7 +2,7 @@ import { initStore, onPersistError, store, S, me, bill, persist, restore } from 
 import { validateBill } from "./fair.js";
 import { myPosition, ledgers, makeBill, makeItem, sampleBill, tidyBill } from "./model.js";
 import { session } from "./session.js";
-import { av, esc, icon, fmt, fixButtons, setRenderer, go, back, toast, drawSheets, closeSheet, sheetOpen, trapFocus, resolveConfirm, openSheet, sheetHead, download, commit, firstName } from "./ui.js";
+import { av, esc, icon, fmt, fixButtons, countUp, setRenderer, go, back, toast, drawSheets, closeSheet, sheetOpen, trapFocus, resolveConfirm, openSheet, sheetHead, download, commit, firstName } from "./ui.js";
 import { Onboarding, onboardingActions } from "./views/onboarding.js";
 import { Home, homeActions } from "./views/home.js";
 import { Scan, scanActions } from "./views/scan.js";
@@ -12,6 +12,7 @@ import { Shared, sharedActions } from "./views/shared.js";
 import { Friends, friendActions, personActions, studioActions } from "./views/people.js";
 import { Groups, Group, Settle, groupActions } from "./views/groups.js";
 import { History, Insights, Settings, moreActions } from "./views/more.js";
+import { quickActions, openQuick, quickKey } from "./views/quick.js";
 
 const actions = {
   ...studioActions,
@@ -25,6 +26,7 @@ const actions = {
   ...personActions,
   ...groupActions,
   ...moreActions,
+  ...quickActions,
   back: () => back("home"),
   "sheet-close": () => closeSheet(),
   "confirm-yes": () => resolveConfirm(true),
@@ -96,7 +98,8 @@ function route() {
   }
   if (path === "new") {
     history.replaceState(history.state, "", "#/home");
-    return newManualBill();
+    go("home", true);
+    return openQuick();
   }
   let view = null,
     params = {};
@@ -146,7 +149,8 @@ function rail(path) {
     sec = section(path);
   return `<aside class="rail" aria-label="Main navigation">
     <a class="brand" href="#/home"><span class="logo-mark">${icon("receipt")}</span><b>SplitSmart</b></a>
-    <button class="btn primary block rail-scan" data-go="scan">${icon("scan")} Scan a bill</button>
+    <button class="btn primary block rail-scan" data-act="quick-open">${icon("plus")} Add expense</button>
+    <button class="btn outline block rail-scan2" data-go="scan">${icon("scan")} Scan a bill</button>
     <nav>${NAV.map(([to, ic, label]) => `<a class="rail-link ${sec === to ? "on" : ""}" href="#/${to}" ${sec === to ? 'aria-current="page"' : ""}>${icon(ic)}<span>${label}</span></a>`).join("")}</nav>
     <a class="rail-me" href="#/settings">${av(m, 40)}<span class="grow"><b>${esc(m?.name)}</b><small>${icon("lock")} Data stays on device</small></span></a>
   </aside>`;
@@ -155,7 +159,7 @@ function tabbar(path) {
   let sec = section(path);
   return `<nav class="tabbar" aria-label="Main">
     <a class="tab ${sec === "home" ? "on" : ""}" href="#/home" aria-label="Home" ${sec === "home" ? 'aria-current="page"' : ""}>${icon("home")}</a>
-    <a class="tab scan" href="#/scan" aria-label="Scan a bill">${icon("scan")}</a>
+    <button class="tab add" data-act="quick-open" aria-label="Add an expense">${icon("plus")}</button>
     <a class="tab ${sec === "history" ? "on" : ""}" href="#/history" aria-label="History" ${sec === "history" ? 'aria-current="page"' : ""}>${icon("history")}</a>
   </nav>`;
 }
@@ -199,6 +203,7 @@ function render() {
   }
   fixButtons(app);
   drawSheets(false);
+  countUp(document);
 
   document.querySelectorAll("[data-scroll]").forEach((el) => {
     let v = scrolls[el.dataset.scroll];
@@ -281,10 +286,11 @@ document.addEventListener("keydown", (e) => {
     return closeSheet();
   }
   let typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+  if (!typing && !e.metaKey && !e.ctrlKey && quickKey(e)) return e.preventDefault();
   if (typing || sheetOpen() || e.metaKey || e.ctrlKey || e.altKey || !S().prefs.onboarded) return;
   if (e.key === "n" || e.key === "N") {
     e.preventDefault();
-    newManualBill();
+    openQuick();
   } else if (e.key === "s" || e.key === "S") {
     e.preventDefault();
     go("scan");

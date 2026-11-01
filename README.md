@@ -34,3 +34,16 @@ Group data is stored in localStorage in the current browser, not synced between 
 ## Suggested submission description (under 100 words)
 
 SplitSmart scans receipts privately on-device, supports item assignments and four split modes, and computes minimum-payment settlements with exact paise reconciliation. Extras include UPI links and QR codes, spending insights, portable JSON backups, recurring expenses, CSV settlement export, batch receipt scanning, an installable offline-capable app shell, and keyboard-friendly responsive layouts. OCR uses Tesseract.js and categorization uses Xenova/mobilebert-uncased-mnli; no models were trained.
+
+
+## Club edition update
+
+- Receipt-inspired visual identity, responsive desktop sidebar and mobile navigation.
+- Sample receipt editor: open a group and choose **Try a sample** to demonstrate item assignments without waiting for model downloads.
+- Live per-member split with proportional adjustments and mismatch feedback.
+- Search expenses by description or payer.
+- Keyboard shortcuts: **N** for an expense, **S** for scanning, **Escape** to close a dialog. Dialogs trap Tab focus.
+- Tested in the browser at 360 px, 768 px and 1440 px. Sample receipt saving verified; no horizontal overflow at phone and tablet widths.
+- New OCR/model downloads were not exercised in this design pass.
+
+![Desktop dashboard](docs/dashboard-desktop.png)

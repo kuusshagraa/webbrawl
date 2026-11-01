@@ -152,6 +152,8 @@ export const Scan = {
     </div>`;
   },
   mount() {
+    // The guided demo opens the scanner on a bundled sample receipt.
+    if (/[?&]demo=1/.test(location.hash)) return void useImage(new URL("demo/receipt.jpg", location.href).href, "Spice Route Kitchen");
     if (sc.phase === "camera") startCamera();
     let next = /[?&]next=1/.test(location.hash);
     if (next && session.queue.length) useFile(session.queue.shift());

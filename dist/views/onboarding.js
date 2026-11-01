@@ -57,6 +57,7 @@ export const Onboarding = {
         <header class="ob-brand"><span class="logo-mark">${icon("receipt")}</span><b>SplitSmart</b>${!last ? `<button class="link" data-act="ob-skip-intro">Skip</button>` : ""}</header>
         <div class="ob-slide ${enter("ob", "slide" + ob.slide)}" aria-live="polite">${s.art()}<h1>${s.title}</h1><p>${s.text}</p></div>
         <div class="dots">${SLIDES.map((_, i) => `<button class="${i === ob.slide ? "on" : ""}" data-act="ob-slide" data-i="${i}" aria-label="Slide ${i + 1}" aria-current="${i === ob.slide}"></button>`).join("")}</div>
+        <button class="demo-cta" data-act="demo-start">${icon("hand")}<span><b>Reviewing SplitSmart?</b> Take the guided demo with sample data</span>${icon("next")}</button>
         <div class="ob-foot">${last ? `<button class="btn primary block" data-act="ob-start">Get started</button>${migrated ? `<p class="fine">We found your groups from the previous version. They'll be right there.</p>` : `<p class="fine">${icon("lock")} No sign-up. Your data stays on this device.</p>`}` : `<button class="btn primary block" data-act="ob-slide" data-i="${ob.slide + 1}">Next</button>`}</div>
       </div>`;
     }

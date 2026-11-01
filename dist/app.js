@@ -14,6 +14,7 @@ import { Groups, Group, Settle, groupActions } from "./views/groups.js";
 import { History, Insights, Settings, moreActions } from "./views/more.js";
 import { quickActions, openQuick, quickKey } from "./views/quick.js";
 import { Wrapped, wrappedActions } from "./views/wrapped.js";
+import { tourActions, tourRefresh, tourKey, startDemo } from "./views/tour.js";
 
 const actions = {
   ...studioActions,
@@ -29,6 +30,7 @@ const actions = {
   ...moreActions,
   ...quickActions,
   ...wrappedActions,
+  ...tourActions,
   back: () => back("home"),
   "sheet-close": () => closeSheet(),
   "confirm-yes": () => resolveConfirm(true),
@@ -88,8 +90,9 @@ function closeEditSession(path) {
 function route() {
   let path = parseHash(),
     s = S();
-  if (!s.prefs.onboarded && !/^(welcome|s\/)/.test(path)) return go("welcome", true);
+  if (!s.prefs.onboarded && !/^(welcome|s\/|demo)/.test(path)) return go("welcome", true);
   if (s.prefs.onboarded && path === "welcome") return go("home", true);
+  if (path === "demo") return startDemo();
   if (path === "sample") {
     let { bill: b, created } = sampleBill();
     commit((st) => {
@@ -185,7 +188,7 @@ function defaultAside() {
     mine = ledgers().flatMap((l) => l.tx.map((t) => ({ ...t, group: l.name }))).filter((t) => t.from === s.meId || t.to === s.meId).slice(0, 5),
     name = (id) => (id === s.meId ? "You" : esc(s.people.find((p) => p.id === id)?.name || "Someone"));
   return `<section class="card side-card me-card">${av(m, 56)}<b>${esc(m?.name)}</b><div class="me-stats"><div><small>You owe</small><b class="${owe ? "neg" : ""}">${fmt(owe)}</b></div><div><small>You're owed</small><b class="${owed ? "pos" : ""}">${fmt(owed)}</b></div></div></section>
-  <section class="card side-card"><div class="card-title"><h3>Your payments</h3><a class="see-all" href="#/settle">All</a></div>${mine.length ? mine.map((t) => `<div class="side-person">${av(t.from === s.meId ? t.to : t.from, 36)}<span class="grow"><b>${t.from === s.meId ? `You pay ${name(t.to)}` : `${name(t.from)} pays you`}</b><small>${esc(t.group)}</small></span><b class="${t.from === s.meId ? "neg" : "pos"}">${fmt(t.amount)}</b></div>`).join("") : `<p class="muted small">${icon("check")} You're all square.</p>`}</section>
+  <section class="card side-card"><div class="card-title"><h3>Your payments</h3><a class="see-all" href="#/settle">All</a></div>${mine.length ? mine.map((t) => `<div class="side-person">${av(t.from === s.meId ? t.to : t.from, 36)}<span class="grow"><b>${t.from === s.meId ? `You pay ${name(t.to)}` : `${name(t.from)} pays you`}</b><small>${esc(t.group)}</small></span><b class="${t.from === s.meId ? "neg" : "pos"}">${fmt(t.amount)}</b></div>`).join("") : `<p class="muted small with-icon">${icon("check")} You're all square.</p>`}</section>
   <section class="card side-card tip"><b>${icon("hand")} Tip</b><p class="muted small">Not sure who ate what? Open a bill and tap <b>Pass the phone</b>. Everyone picks their own items.</p></section>`;
 }
 
@@ -236,6 +239,7 @@ function render() {
       } catch {}
     }
   }
+  tourRefresh();
   if (document.querySelector("#upi-qr .spinner")) import("./views/groups.js").then((m) => m.redrawQr?.());
   view.after?.(params);
 }
@@ -295,6 +299,7 @@ document.addEventListener("submit", (e) => {
   run(form.dataset.submit, form, e);
 });
 document.addEventListener("keydown", (e) => {
+  if (tourKey(e)) return e.preventDefault();
   trapFocus(e);
   if (e.key === "Escape" && sheetOpen()) {
     e.preventDefault();

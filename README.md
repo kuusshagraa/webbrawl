@@ -4,6 +4,10 @@ Scan a bill, pay only for what you had, and settle up without the awkward group 
 
 ![Desktop home](docs/dashboard-desktop.png)
 
+## Guided demo for reviewers
+
+Open **https://super-lebkuchen-c44ad5.netlify.app/#/demo** (or tap "Take the guided demo" on the first screen, or Settings → Guided demo). It loads sample data in a separate sandbox and walks through all 26 steps of the product: balances, Quick Add by sentence, WhatsApp asks, on-device receipt scanning with a bundled sample bill, the review screen, fair-split rules (diet tags, split by count, charge rules), pass the phone, disputes, summaries, settle up with UPI and reminders, groups, friends, the avatar studio, monthly Wrapped, share links and backups. Use Next/Back or the arrow keys; the "Demo" pill restarts the tour or exits. Exiting restores the app exactly as it was.
+
 ## Run locally
 
 Requires Node.js 18+ for tests. Serve `dist/` with any static server (`npx serve dist` or `python3 -m http.server 8000 --directory dist`) and open the URL. HTTPS or localhost is needed for the camera, service worker and install prompt. `npm test` runs the engine, parser, sharing and storage tests. No build step or API key.

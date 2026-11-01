@@ -912,3 +912,22 @@ p.muted.small > .ic { width: 18px; height: 18px; }
 .sheet.tall .sheet-head { margin-bottom: 6px; }
 .sheet.tall .grabber { margin-bottom: 4px; }
 @media (min-width: 640px) { .sheet.tall { max-height: 94dvh; } }
+.btn.wa.icon-only { width: 36px; height: 36px; padding: 0; }
+.wa-mini { width: 32px; height: 32px; border-radius: 50%; background: #e7f9ee; color: #1ea952; display: grid; place-items: center; flex: none; }
+.wa-mini .ic { width: 17px; height: 17px; }
+.note-ic.wa { color: #1ea952; background: #e7f9ee; }
+button.note { width: 100%; text-align: left; }
+
+/* ---------- Screen transitions & printing ---------- */
+.screen.slide-forward { animation: vt-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.screen.slide-back { animation: vt-in-back 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes vt-in { from { transform: translateX(28px); opacity: 0; } }
+@keyframes vt-in-back { from { transform: translateX(-28px); opacity: 0; } }
+.printing .summary-head { animation: print 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) both; }
+.printing .person-total { animation: rise 0.4s ease both; }
+.printing .person-total:nth-child(2) { animation-delay: 0.45s; }
+.printing .person-total:nth-child(3) { animation-delay: 0.55s; }
+.printing .person-total:nth-child(4) { animation-delay: 0.65s; }
+.printing .person-total:nth-child(n + 5) { animation-delay: 0.75s; }
+.printing .person-total:first-child { animation-delay: 0.35s; }
+@keyframes print { from { clip-path: inset(-20px 0 100% 0); transform: translateY(-14px); } to { clip-path: inset(-20px 0 -20px 0); transform: none; } }

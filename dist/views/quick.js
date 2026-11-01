@@ -46,7 +46,10 @@ export function openQuick(prefill = null) {
     error: "",
     saved: null,
   };
-  if (prefill) applyParsed(prefill, true);
+  if (prefill) {
+    applyParsed(prefill, true);
+    if (prefill.text) qa.text = prefill.text;
+  }
   haptic();
   openSheet(render, { label: "Add expense", onClose: stopVoice, cls: "tall" });
 }

@@ -1,6 +1,8 @@
-import { S, me, groupOf, store } from "../store.js";
+import { S, me, groupOf, store, nameOf } from "../store.js";
 import { splitBill } from "../fair.js";
 import { myPosition, ledgers, sharingCount } from "../model.js";
+import { overdue } from "../remind.js";
+import { todayISO } from "../store.js";
 import { CATEGORIES } from "../icons.js";
 import { av, avStack, esc, icon, fmt, money, iconBtn, firstName, dateLabel, openSheet, sheetHead, closeSheet, go, empty, plural } from "../ui.js";
 
@@ -25,6 +27,8 @@ export function notifications() {
     let r = splitBill(b);
     if (r.disputed) out.push({ icon: "flag", title: `Disputed item on ${b.title}`, text: `${fmt(r.disputed)} is waiting to be sorted out.`, go: `bill/${b.id}` });
   }
+  for (let o of overdue(s, todayISO()))
+    out.push({ icon: "chat", title: `${nameOf(o.from)} hasn't paid ${fmt(o.amount)}`, text: `For ${o.what} · ${o.days} days ago. Tap to remind on WhatsApp.`, act: "tx-remind", from: o.from, group: o.groupId || "" });
   let days = s.prefs.lastBackup ? (Date.now() - s.prefs.lastBackup) / 864e5 : 999;
   if (s.bills.some((b) => b.status === "final") && days > 14 && !(s.prefs.backupSnooze > Date.now()))
     out.push({ icon: "download", title: "Back up your bills", text: "Your data lives only on this device. Export a backup in Settings.", go: "settings" });
@@ -91,7 +95,7 @@ function notesSheet() {
   let notes = notifications();
   return `${sheetHead("Notifications")}${
     notes.length
-      ? `<div class="notes">${notes.map((n) => `<a class="note" href="#/${n.go}" data-act="sheet-close-nav"><span class="note-ic">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</a>`).join("")}</div>`
+      ? `<div class="notes">${notes.map((n) => n.act ? `<button class="note" data-act="${n.act}" data-from="${n.from}" data-group="${n.group}"><span class="note-ic wa">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</button>` : `<a class="note" href="#/${n.go}" data-act="sheet-close-nav"><span class="note-ic">${icon(n.icon)}</span><span class="grow"><b>${esc(n.title)}</b><small>${esc(n.text)}</small></span>${icon("next")}</a>`).join("")}</div>`
       : empty(`<div class="empty-art">${icon("bell")}</div>`, "You're all caught up", "Drafts, disputes and reminders will show up here.")
   }`;
 }

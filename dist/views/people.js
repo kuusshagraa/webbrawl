@@ -2,6 +2,7 @@ import { store, S, person, usedPeople, newId } from "../store.js";
 import { LOOK, LOOK_LABELS, lookFromSeed, resolveLook } from "../avatar.js";
 import { DIET } from "../fair.js";
 import { makePerson } from "../model.js";
+import { cleanPhone } from "../nudge.js";
 import { av, esc, icon, topbar, iconBtn, openSheet, closeSheet, sheetHead, refresh, commit, toast, confirmDialog, pickFile, photoToDataUrl, empty } from "../ui.js";
 
 /* ---------- Avatar studio (shared with onboarding) ---------- */
@@ -136,6 +137,7 @@ function personSheet() {
     ${avatarStudio(true)}
     <label class="field"><span>Name</span><input data-f="p-name" data-in="person-field" data-k="name" value="${esc(editing.name)}" maxlength="40" placeholder="e.g. Aman Verma" autocomplete="off" required ${editing._new ? "autofocus" : ""}></label>
     <label class="field"><span>UPI ID <em>optional</em></span><input data-f="p-upi" data-in="person-field" data-k="upi" value="${esc(editing.upi)}" maxlength="60" placeholder="name@okbank" autocomplete="off" inputmode="email"></label>
+    <label class="field"><span>Phone for WhatsApp <em>optional</em></span><input data-f="p-phone" data-in="person-field" data-k="phone" value="${esc(editing.phone || "")}" maxlength="16" placeholder="98765 43210" autocomplete="off" inputmode="tel"><small class="hint">Opens their chat directly when you ask for money back.</small></label>
     <div class="field"><span>Food & drink</span><small class="hint">They'll be left out of matching items automatically. You can always undo it on a bill.</small>${dietChips(editing.tags, "person-tag")}</div>
     <p class="form-error" role="alert" id="person-error"></p>
     <div class="sheet-actions">${!editing._new && !isMe ? `<button type="button" class="btn danger-outline" data-act="person-delete">Delete</button>` : ""}<button class="btn primary" type="submit">${editing._new ? "Add friend" : "Save"}</button></div>
@@ -157,9 +159,11 @@ export const personActions = {
       err = document.getElementById("person-error");
     if (!name) return (err.textContent = "Please add a name.");
     if (upi && !UPI.test(upi)) return (err.textContent = "That UPI ID doesn't look right. It should look like name@bank.");
+    let phone = String(editing.phone || "").trim();
+    if (phone && !cleanPhone(phone)) return (err.textContent = "That phone number doesn't look right. Use a 10-digit Indian mobile number.");
     let dupe = S().people.find((p) => p.id !== editing.id && p.name.trim().toLowerCase() === name.toLowerCase());
     if (dupe && editing._new) return (err.textContent = `You already have a friend called ${dupe.name}. Add a surname or nickname to tell them apart.`);
-    let { _new, ...clean } = { ...editing, name, upi };
+    let { _new, ...clean } = { ...editing, name, upi, phone };
     delete clean.sample;
     let after = onSaved;
     closeSheet();

@@ -1,4 +1,4 @@
-import { S, store, person, groupOf, nameOf, parseBackup, replaceState, todayISO, KEY, V1_KEY } from "../store.js";
+import { S, store, person, groupOf, nameOf, parseBackup, replaceState, todayISO, KEY, V1_KEY, inDemo } from "../store.js";
 import { money } from "../core.js";
 import { splitBill } from "../fair.js";
 import { csvAll } from "../model.js";
@@ -123,6 +123,7 @@ export const Settings = {
         <a class="setting-link" href="#/friends">${icon("users")}<span class="grow">Friends & food preferences</span>${icon("next")}</a>
         <a class="setting-link" href="#/groups">${icon("wallet")}<span class="grow">Groups</span>${icon("next")}</a>
         <a class="setting-link" href="#/insights">${icon("chart")}<span class="grow">Insights</span>${icon("next")}</a>
+        ${inDemo() ? `<button class="setting-link" data-act="tour-start">${icon("hand")}<span class="grow">Restart the guided tour</span>${icon("next")}</button><button class="setting-link danger" data-act="demo-exit">${icon("x")}<span class="grow">Exit demo mode</span></button>` : `<button class="setting-link" data-act="demo-start">${icon("hand")}<span class="grow">Guided demo with sample data</span>${icon("next")}</button>`}
       </section>
       <section class="card list-card">
         <div class="card-title"><h3>Your data</h3><span class="muted small">${(size / 1024).toFixed(1)} KB on this device</span></div>

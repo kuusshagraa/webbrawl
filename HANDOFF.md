@@ -11,7 +11,7 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 - **No build step.** Plain ES modules in `dist/`, served as static files. Don't add a bundler or framework.
 - **Match the existing code style:** small pure modules for logic, views as functions returning HTML strings, `data-act` event delegation. Escape all user text with `esc()`.
 - **Money is integer paise** inside the engine (`money()` in `core.js`). Splits must always add up exactly to the total; there is a property test for this.
-- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 66 tests pass.
+- **Tests:** `npm test` (Node's built-in test runner, `tests/*.test.js`). Add tests for every pure function. Currently 70 tests pass.
 - **Run locally:** `python3 -m http.server 8001 --directory dist`, then open http://localhost:8001. Use a new port or a private window to see onboarding from scratch.
 - **Ship:** branch → PR to `main` (repo `kuusshagraa/webbrawl`) → wait for the Netlify deploy preview check to pass → merge. Commit messages end with a `Co-Authored-By` line.
 - Design language: lavender/peach gradient background, white cards, primary blue `#4353E6`, Plus Jakarta Sans, torn-receipt card edges, illustrated avatars. Tokens are at the top of `dist/style.css`.
@@ -29,6 +29,7 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 | `nudge.js` | WhatsApp message text and `wa.me` links |
 | `remind.js` | `overdue()`: money owed to me for 3+ days |
 | `wrapped.js` | `monthStats()` for the monthly Wrapped story |
+| `demo.js` + `views/tour.js` | Guided demo: sample data (tested) in a sandboxed storage key (`enterDemo`/`exitDemo` in `store.js`) and a 26-step spotlight tour. Entry: `#/demo`, the first onboarding screen, Settings. If you add a feature, add a tour step for it in `STEPS`. |
 | `share.js` | Encodes a bill into a URL (`#/s/<payload>`) and back |
 | `store.js` | v2 storage, v1 migration, corruption recovery, backups, monthly recurrence, selectors |
 | `model.js` | Domain helpers: `makeBill`, `makeItem`, `makePerson`, `tidyBill`, ledgers, share text, CSV, sample bill |

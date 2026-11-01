@@ -8,10 +8,11 @@
 |---|---|
 | Product | SplitSmart: a mobile-first app for splitting bills fairly among friends, flatmates and hostel groups |
 | Live app | https://super-lebkuchen-c44ad5.netlify.app |
+| **Guided demo for evaluators** | https://super-lebkuchen-c44ad5.netlify.app/#/demo (26-step tour with sample data; also on the first screen and in Settings) |
 | Code | https://github.com/kuusshagraa/webbrawl (pull requests #1–#6) |
 | Platform | Web app installable on phones (PWA), works in Safari (iPhone) and Chrome (Android), with a desktop layout |
 | Backend | None. All data stays on the user's device; receipts are read on the phone |
-| Size | ~7,000 lines of JavaScript/CSS, 66 automated tests |
+| Size | ~7,500 lines of JavaScript/CSS, 70 automated tests |
 | Currency / payments | Indian rupees, UPI payment links and QR codes |
 
 ## 2. Problems identified
@@ -109,6 +110,12 @@ Reference design: a modern bill-split mobile UI (lavender/peach gradient, white 
 - View Transitions were replaced with a plain CSS slide-in after reproducing the Chrome crash.
 - Safari-only layout bugs were fixed (class-name clashes, a sheet too tall for an iPhone screen).
 
+### S7. Guided demo mode for evaluators
+- A reviewer can open `/#/demo`, or tap "Take the guided demo" on the first screen, and see **every feature in about 3 minutes** without creating an account or entering data.
+- It loads rich sample data (5 friends with food tags, a hostel group and a Goa trip, bills across two months, a payment, a monthly Wi-Fi bill, a disputed item, an overdue friend and a scanned receipt waiting for review) in a **separate sandbox**. Real data is never touched, and exiting restores the app exactly as it was.
+- A **26-step spotlight tour** highlights each feature with a short explanation and moves between screens automatically. It types a sentence into Quick Add and saves it, opens the scanner on a bundled sample receipt (tap Read receipt to run the real on-device OCR), and visits the review screen, fair-split rules, pass the phone, disputes, summaries, settle up, reminders, groups, friends, the avatar studio, Wrapped, share links and backups.
+- Next/Back buttons, arrow keys, Skip, and a "Demo" pill to restart the tour or exit. Tested end to end in Safari's and Chrome's engines on phone and desktop sizes.
+
 ## 5. OCR benchmark (real receipts)
 
 Test images: a tilted phone photo of a 14-item restaurant bill (₹4,770 incl. 2 × 2.5% GST and a ₹0.16 round-off), a digital restaurant bill (3 items, ₹472.50), and a printed café receipt (4 items, ₹477.76).
@@ -147,7 +154,7 @@ First-time setup downloads about 35 MB (engine + models) once; a fresh browser c
 
 ## 8. Quality and testing
 
-- **66 automated tests**, including:
+- **70 automated tests**, including:
   - a property test on 500 random bills (shares always add up exactly; excluded people never pay for an item)
   - three real receipts stored as OCR fixtures
   - the sentence parser, WhatsApp messages, reminders, Wrapped statistics, migration, corruption recovery, share links
@@ -164,6 +171,8 @@ First-time setup downloads about 35 MB (engine + models) once; a fresh browser c
 | #3 | Quick Add, sentence + voice entry, WhatsApp asks, reminders, smart paste, motion, Wrapped |
 | #4, #6 | Handoff documentation |
 | #5 | Bottom controls kept clear of the hosting badge |
+| #7 | Report notes and screenshots |
+| #8 | Guided demo mode for evaluators |
 
 ## 10. Results at a glance
 
@@ -175,7 +184,7 @@ First-time setup downloads about 35 MB (engine + models) once; a fresh browser c
 | First-scan model download on live site | stalled at ~50 KB/s | 2–4 MB/s with fallback |
 | Unfair-split causes handled | equal / manual only | 6 causes handled (exclusions, diet tags, count, charge rules, coupons, disputes, pass the phone) |
 | Following up for money | manual | one-tap WhatsApp asks and overdue reminders |
-| Automated tests | 8 | 66 |
+| Automated tests | 8 | 70 |
 
 ## 11. Limitations and next steps
 
@@ -206,6 +215,7 @@ First-time setup downloads about 35 MB (engine + models) once; a fresh browser c
 | `wrapped-intro.png` | Monthly Wrapped story |
 | `wrapped-card.png` | Wrapped share card |
 | `../dashboard-desktop.png` | Desktop layout |
+| `demo-tour-step.png` | Guided demo: spotlight on the automatic veg exclusion |
 
 ## 13. Phone test checklist (to be filled in by the team)
 
@@ -213,6 +223,7 @@ Test on the live app: https://super-lebkuchen-c44ad5.netlify.app. Mark each line
 
 | # | Check | iPhone (Safari) | Android (Chrome) | Notes |
 |---|---|---|---|---|
+| 0 | Guided demo (`/#/demo`): all 26 steps, Exit restores the app | | | |
 | 1 | Onboarding: name, avatar (shuffle, customise, photo), food tags, crew | | | |
 | 2 | Add to Home Screen; opens like an app | | | |
 | 3 | Quick Add by typing "Uber 640 with <friend>" | | | |

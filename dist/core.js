@@ -65,14 +65,26 @@ export function balances(group) {
   return b;
 }
 // Backtracking searches all distinct balance pairings for a true minimum.
+// Among equally short answers it keeps the one moving the least money, and
+// smaller balances are visited first so debtors tend to pay creditors directly.
 export function settle(b) {
-  let entries = Object.entries(b).filter(([, v]) => v !== 0);
+  let entries = Object.entries(b)
+    .filter(([, v]) => v !== 0)
+    .map((e, i) => [e, i])
+    .sort((x, y) => Math.abs(x[0][1]) - Math.abs(y[0][1]) || x[1] - y[1])
+    .map((x) => x[0]);
   let vals = entries.map((x) => x[1]),
-    best = null;
+    best = null,
+    volume = (tx) => tx.reduce((a, t) => a + t.amount, 0);
   function dfs(start, tx) {
     while (start < vals.length && vals[start] === 0) start++;
     if (start === vals.length) {
-      if (!best || tx.length < best.length) best = tx.slice();
+      if (
+        !best ||
+        tx.length < best.length ||
+        (tx.length === best.length && volume(tx) < volume(best))
+      )
+        best = tx.slice();
       return;
     }
     if (best && tx.length >= best.length) return;

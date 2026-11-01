@@ -1,4 +1,4 @@
-const CACHE = "splitsmart-v4";
+const CACHE = "splitsmart-v6";
 self.addEventListener("install", (e) =>
   e.waitUntil(
     caches
@@ -10,6 +10,26 @@ self.addEventListener("install", (e) =>
           "style.css",
           "app.js",
           "core.js",
+          "fair.js",
+          "parse.js",
+          "layout.js",
+          "share.js",
+          "store.js",
+          "model.js",
+          "session.js",
+          "ui.js",
+          "icons.js",
+          "avatar.js",
+          "ocr.js",
+          "views/home.js",
+          "views/onboarding.js",
+          "views/people.js",
+          "views/bill.js",
+          "views/pass.js",
+          "views/scan.js",
+          "views/shared.js",
+          "views/groups.js",
+          "views/more.js",
           "icon.svg",
           "manifest.json",
         ]),
@@ -24,7 +44,7 @@ self.addEventListener("activate", (e) =>
         .then((keys) =>
           Promise.all(
             keys
-              .filter((k) => k.startsWith("splitsmart-") && k !== CACHE)
+              .filter((k) => k.startsWith("splitsmart-") && k !== CACHE && !k.startsWith("splitsmart-models-"))
               .map((k) => caches.delete(k)),
           ),
         ),
@@ -32,26 +52,23 @@ self.addEventListener("activate", (e) =>
     ]),
   ),
 );
+// App files: network first so updates arrive immediately, cache when offline.
+// Third-party libraries and fonts: cache first, they are versioned URLs.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  let url = new URL(e.request.url);
+  if (url.pathname.includes("/models/")) return;
+  let same = url.origin === location.origin,
+    put = (response) => {
+      if (response.ok && (same || response.type === "cors")) {
+        let copy = response.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+      }
+      return response;
+    };
   e.respondWith(
-    caches.match(e.request).then(
-      (cached) =>
-        cached ||
-        fetch(e.request).then((response) => {
-          if (
-            response.ok &&
-            (new URL(e.request.url).origin === location.origin ||
-              response.type === "cors")
-          ) {
-            let copy = response.clone();
-            caches
-              .open(CACHE)
-              .then((c) => c.put(e.request, copy))
-              .catch(() => {});
-          }
-          return response;
-        }),
-    ),
+    same
+      ? fetch(e.request).then(put).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match("index.html")))
+      : caches.match(e.request).then((cached) => cached || fetch(e.request).then(put)),
   );
 });

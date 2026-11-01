@@ -1,4 +1,4 @@
-const CACHE = "splitsmart-v7";
+const CACHE = "splitsmart-v8";
 self.addEventListener("install", (e) =>
   e.waitUntil(
     caches
@@ -30,6 +30,15 @@ self.addEventListener("install", (e) =>
           "views/shared.js",
           "views/groups.js",
           "views/more.js",
+          "views/quick.js",
+          "views/wrapped.js",
+          "views/tour.js",
+          "quick.js",
+          "nudge.js",
+          "remind.js",
+          "wrapped.js",
+          "demo.js",
+          "demo/receipt.jpg",
           "icon.svg",
           "manifest.json",
         ]),

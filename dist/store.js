@@ -1,6 +1,8 @@
 import { money, allocate } from "./core.js";
 
 export const KEY = "splitsmart-v2";
+export const DEMO_KEY = "splitsmart-demo-v2";
+const DEMO_FLAG = "splitsmart-demo";
 export const V1_KEY = "splitsmart-v1";
 const uid = () =>
   globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -174,10 +176,10 @@ export function runRecurring(s, today = todayISO()) {
   return made;
 }
 
-export function load(storage) {
+export function load(storage, key = KEY) {
   let notice = null,
     s;
-  let raw = storage.getItem(KEY);
+  let raw = storage.getItem(key);
   if (raw) {
     try {
       s = normalize(JSON.parse(raw));
@@ -189,7 +191,7 @@ export function load(storage) {
       s = emptyState();
       notice = { type: "corrupt", key };
     }
-  } else {
+  } else if (key === KEY) {
     let old = storage.getItem(V1_KEY);
     s = emptyState();
     if (old) {
@@ -208,10 +210,35 @@ export function load(storage) {
 
 export const store = { state: emptyState(), notice: null };
 let storage = null,
-  listeners = [];
+  listeners = [],
+  activeKey = KEY;
+const session = () => {
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+};
+// The guided demo runs in its own storage slot; real data is never touched.
+export const inDemo = () => activeKey === DEMO_KEY;
+export function enterDemo(state) {
+  activeKey = DEMO_KEY;
+  session()?.setItem(DEMO_FLAG, "1");
+  store.state = state;
+  store.notice = null;
+  persist();
+}
+export function exitDemo() {
+  session()?.removeItem(DEMO_FLAG);
+  try {
+    storage?.removeItem(DEMO_KEY);
+  } catch {}
+  activeKey = KEY;
+}
 export function initStore(st = globalThis.localStorage) {
   storage = st;
-  let r = load(st);
+  if (session()?.getItem(DEMO_FLAG) && st.getItem(DEMO_KEY)) activeKey = DEMO_KEY;
+  let r = load(st, activeKey);
   store.state = r.state;
   store.notice = r.notice;
   if (runRecurring(store.state)) persist();
@@ -221,7 +248,7 @@ export const onPersistError = (fn) => listeners.push(fn);
 export function persist() {
   if (!storage) return true;
   try {
-    storage.setItem(KEY, JSON.stringify(store.state));
+    storage.setItem(activeKey, JSON.stringify(store.state));
     return true;
   } catch (e) {
     listeners.forEach((fn) => fn(e));

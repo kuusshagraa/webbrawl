@@ -1,4 +1,4 @@
-const CACHE = "splitsmart-v5";
+const CACHE = "splitsmart-v6";
 self.addEventListener("install", (e) =>
   e.waitUntil(
     caches
@@ -12,6 +12,7 @@ self.addEventListener("install", (e) =>
           "core.js",
           "fair.js",
           "parse.js",
+          "layout.js",
           "share.js",
           "store.js",
           "model.js",
@@ -43,7 +44,7 @@ self.addEventListener("activate", (e) =>
         .then((keys) =>
           Promise.all(
             keys
-              .filter((k) => k.startsWith("splitsmart-") && k !== CACHE)
+              .filter((k) => k.startsWith("splitsmart-") && k !== CACHE && !k.startsWith("splitsmart-models-"))
               .map((k) => caches.delete(k)),
           ),
         ),
@@ -55,8 +56,9 @@ self.addEventListener("activate", (e) =>
 // Third-party libraries and fonts: cache first, they are versioned URLs.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  let url = new URL(e.request.url),
-    same = url.origin === location.origin,
+  let url = new URL(e.request.url);
+  if (url.pathname.includes("/models/")) return;
+  let same = url.origin === location.origin,
     put = (response) => {
       if (response.ok && (same || response.type === "cors")) {
         let copy = response.clone();

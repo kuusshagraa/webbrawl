@@ -115,3 +115,21 @@ test("low confidence words flag items", () => {
   let r = parseText("Cold Coffe 120.00\nTea 20.00", ["Coffe"]);
   assert.deepEqual(r.items.map((i) => i.low), [true, false]);
 });
+
+test("merged words are split and column headers are not the merchant", () => {
+  let r = parseText("tem Qty. Price Amount\nPaneerTikka 2 120.00 240.00\nGrand Total 240.00");
+  assert.equal(r.merchant, "");
+  assert.equal(r.items[0].name, "Paneer Tikka");
+});
+
+test("address lines are not the merchant and tax labels are tidy", () => {
+  let r = parseText("Market,Faridabad, Haryana\nDosa 1 100.00 100.00\nCGST@2.52.5% 2.50\nSGST（2.5) 2.50\nGrand Total 105.00");
+  assert.equal(r.merchant, "");
+  assert.deepEqual(r.charges.map((c) => c.label), ["CGST 2.5%", "SGST 2.5%"]);
+});
+
+test("dates and times glued together are still found", () => {
+  let r = parseText("Date:2026-02-0619:32\nTea 20.00");
+  assert.equal(r.date, "2026-02-06");
+  assert.equal(r.time, "19:32");
+});

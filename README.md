@@ -46,7 +46,23 @@ A shared link carries the whole bill, compressed into the URL, so no server is n
 - Corrupted storage never crashes the app: the raw data is kept aside and can be downloaded.
 - Deletes and edits offer Undo; destructive actions ask first. Backups are JSON; bills export as CSV; imports are validated.
 - A full-storage error is reported instead of silently losing a change.
-- The camera, OCR model (Tesseract.js) and QR library download on first use; after that the app works offline. Optional category suggestions use `Xenova/mobilebert-uncased-mnli` via Transformers.js. No model is trained.
+- Optional category suggestions use `Xenova/mobilebert-uncased-mnli` via Transformers.js. No model is trained.
+
+## OCR
+
+Receipts are read on the device with **PaddleOCR PP-OCRv5 (mobile)** running in WebAssembly through ONNX Runtime Web and the MIT-licensed `paddleocr` runtime. The detection and recognition models (about 21 MB) are self-hosted in `dist/models/` and cached after the first scan, so later scans work offline. If the device can't run it, the app falls back to Tesseract.js.
+
+The words come back with their positions, and `dist/layout.js` rebuilds the receipt: it undoes the photo's tilt, groups words into rows, splits fused number columns using qty × rate = amount, and joins item names that wrap onto a second line. The parser then separates items from taxes, fees, discounts and round-off, and ignores everything printed after the grand total.
+
+Benchmark on a tilted restaurant photo (14 items, ₹4,770):
+
+| Engine | Item names right | Totals reconcile |
+|---|---|---|
+| Tesseract 5 (previous) | about 4 of 14 | no |
+| PaddleOCR v4 | 13 of 14 | with layout fixes |
+| **PaddleOCR v5 + layout** | **14 of 14** | **yes, to the paisa** |
+
+Both test receipts are in `tests/fixtures/` as real OCR output.
 
 ## Code map
 

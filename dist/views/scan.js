@@ -1,5 +1,6 @@
 import { S, persist, store } from "../store.js";
 import { parseText } from "../parse.js";
+import { parseWords } from "../layout.js";
 import { money } from "../core.js";
 import { makeBill, makeItem, makeCharge, tidyBill } from "../model.js";
 import { defaultRule } from "../fair.js";
@@ -15,8 +16,8 @@ const sc = {
   img: null,
   preview: "",
   rotation: 0,
-  crop: { x: 0.04, y: 0.04, w: 0.92, h: 0.92 },
-  enhance: true,
+  crop: { x: 0, y: 0, w: 1, h: 1 },
+  enhance: false,
   cropping: false,
   parsed: null,
   splitTax: true,
@@ -28,7 +29,7 @@ const sc = {
 
 function reset() {
   sc.run++;
-  Object.assign(sc, { phase: "camera", img: null, preview: "", rotation: 0, crop: { x: 0.04, y: 0.04, w: 0.92, h: 0.92 }, cropping: false, parsed: null, splitTax: true, error: "", name: "" });
+  Object.assign(sc, { phase: "camera", img: null, preview: "", rotation: 0, crop: { x: 0, y: 0, w: 1, h: 1 }, cropping: false, parsed: null, splitTax: true, error: "", name: "" });
 }
 async function startCamera() {
   if (sc.stream) return;
@@ -61,9 +62,9 @@ async function makePreview() {
 async function useImage(src, name = "") {
   try {
     sc.img = await loadImage(src);
-    sc.name = name;
+    sc.name = /whatsapp|^img|image|photo|screenshot|scan|^dsc|^pxl|^\W*\w?\d[\d\s_-]*$/i.test(name) ? "" : name;
     sc.rotation = 0;
-    sc.crop = { x: 0.04, y: 0.04, w: 0.92, h: 0.92 };
+    sc.crop = { x: 0, y: 0, w: 1, h: 1 };
     await makePreview();
     stopCamera();
     sc.phase = "review";
@@ -119,7 +120,7 @@ export const Scan = {
         }${reading ? `<div class="scanline"></div>` : ""}</div>${!sc.cropping ? cornerFrame() : ""}</div>
         ${
           reading
-            ? `<div class="read-card"><div class="read-head"><div class="spinner"></div><b id="scan-label">${esc(sc.progress[0] || "Starting the scanner")}</b></div><div class="bar"><i id="scan-bar" style="width:${Math.round(sc.progress[1] * 100)}%"></i></div><p>First scan downloads the reader (~10 MB). After that it's quick and works offline.</p></div>`
+            ? `<div class="read-card"><div class="read-head"><div class="spinner"></div><b id="scan-label">${esc(sc.progress[0] || "Starting the scanner")}</b></div><div class="bar"><i id="scan-bar" style="width:${Math.round(sc.progress[1] * 100)}%"></i></div><p>The first scan downloads the scanner once (about 25 MB). After that it's quick and works offline.</p></div>`
             : `<div class="tools">
               <button class="tool" data-act="scan-rotate">${icon("rotate")}<span>Rotate</span></button>
               <button class="tool ${sc.cropping ? "on" : ""}" data-act="scan-crop" aria-pressed="${sc.cropping}">${icon("crop")}<span>${sc.cropping ? "Done" : "Crop"}</span></button>
@@ -280,7 +281,7 @@ export const scanActions = {
   },
   "scan-rotate": async () => {
     sc.rotation = (sc.rotation + 90) % 360;
-    sc.crop = { x: 0.04, y: 0.04, w: 0.92, h: 0.92 };
+    sc.crop = { x: 0, y: 0, w: 1, h: 1 };
     await makePreview();
     refresh();
   },
@@ -314,9 +315,9 @@ export const scanActions = {
     try {
       let canvas = processImage(sc.img, { rotation: sc.rotation, crop: sc.crop, enhance: sc.enhance });
       sc.preview = canvas.toDataURL("image/jpeg", 0.85);
-      let { text, low } = await recognize(canvas);
+      let r = await recognize(canvas);
       if (run !== sc.run) return;
-      showResult(parseText(text, low));
+      showResult(r.engine === "paddle" ? parseWords(r.words) : parseText(r.text, r.low));
     } catch (e) {
       console.error(e);
       if (run !== sc.run) return;

@@ -38,6 +38,8 @@ SplitSmart is a mobile-first, client-only web app for splitting bills with frien
 | `sw.js` | Service worker: network-first for app files, cache-first for CDN; OCR models are cached separately by `ocr.js` |
 | `models/` | PP-OCRv5 ONNX models (also served from jsDelivr pinned to commit `b8c84bb`) |
 
+Report source for the project write-up: `docs/REPORT_NOTES.md` (problems, solutions, measured results, screenshots, phone test checklist).
+
 Specs: `docs/superpowers/specs/2026-11-01-splitsmart-redesign-design.md` (main app) and `docs/superpowers/specs/2026-11-01-quick-add-delight-design.md` (current work). Read the second one before continuing.
 
 ## Last completed work: "Quick Add + delight" (merged in PR #3)

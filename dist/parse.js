@@ -27,6 +27,8 @@ const titleCase = (s) =>
 const cleanName = (s) =>
   titleCase(
     s
+      .replace(/([a-z]{3,})([A-Z][a-z]{2,})/g, "$1 $2") // "PaneerTikka" -> "Paneer Tikka"
+      .replace(/\b([A-Za-z]{2,})([01]+)\b/g, (_, a, d) => a + d.replace(/1/g, "l").replace(/0/g, "o")) // "Ro11" -> "Roll"
       .replace(/[|•·®™*_~]+/g, " ")
       .replace(/^[^a-z0-9(]+/i, "")
       .replace(/[\s.:,-]+$/, "")
@@ -39,8 +41,11 @@ const SKIP =
 const TOTAL =
   /^(grand\s*total|total(\s*(amount|bill|payable|due))?|amount(\s*(due|payable|paid))?|net\s*(amount|total|payable)|bill\s*(total|amount)|to\s*pay|balance\s*due|paid)$/i;
 const SUBTOTAL = /^(sub\s*-?\s*total|item\s*total|items?\s*total|total\s*before\s*tax|taxable\s*(amount|value))$/i;
+// Phrases that mark the final payable amount wherever they appear in a line.
+const STRONG_TOTAL = /grand\s*total|net\s*(amount|payable|total)|amount\s*payable|total\s*payable|to\s*pay\b|bill\s*amount/i;
+const TAX_WORD = /\b(c|s|i|ut)?gst(?=\b|\d)|\bvat\b|\bcess\b|\b(sales?\s*)?tax\b/i;
 const NOT_TOTAL = /total\s*(qty|quantity|items?|savings?|discount)|no\.?\s*of\s*items/i;
-const DATE = /\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b|\b(\d{4})-(\d{2})-(\d{2})\b/;
+const DATE = /\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2}(?!\d))|\b(\d{4})[-/.](\d{2})[-/.](\d{2})/;
 const MONTHS = "jan feb mar apr may jun jul aug sep oct nov dec".split(" ");
 const DATE_WORDS = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*,?\s+(\d{4})\b/i;
 const TIME = /\b(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?\b/i;
@@ -64,10 +69,12 @@ function findDate(text) {
   return "";
 }
 function findTime(text) {
-  let m = text.match(TIME);
+  // Also finds a time glued to a date ("12/10/20257:45PM").
+  let m = text.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?/i);
   if (!m) return "";
   let h = +m[1],
     min = +m[2];
+  if (h > 23 && m[1].length === 2) h = +m[1][1];
   if (m[3]) {
     let pm = m[3].toLowerCase() === "pm";
     if (h === 12) h = pm ? 12 : 0;
@@ -89,13 +96,19 @@ export function parseText(text, low = []) {
     merchant = "";
   for (let line of lines.slice(0, 4)) {
     if (merchant || SKIP.test(line) || DATE.test(line) || TIME.test(line)) continue;
-    if (/[a-z]{3}/i.test(line) && !/\d{3,}/.test(line) && line.length <= 40 && !/swiggy|zomato|order/i.test(line))
+    if (/[a-z]{3}/i.test(line) && !/\d{3,}/.test(line) && line.length <= 40 && !/swiggy|zomato|order|\b(qty|price|amount|amt|rate|desc|item|total)\b/i.test(line) && (line.match(/,/g) || []).length < 2 && !/\d\.\d{2}\s*$/.test(line))
       merchant = cleanName(line);
   }
-  let lowSet = low.map((w) => String(w).toLowerCase()).filter((w) => w.length > 1);
+  let lowSet = low.map((w) => String(w).toLowerCase()).filter((w) => w.length > 1),
+    afterTotal = false,
+    sawRoundOff = false;
   for (let raw of lines) {
     let line = raw.replace(/[₹$]\s+/g, (m) => m.trim());
     if (/\bfree\b/i.test(line) && !/\d+\.\d{2}\s*$/.test(line)) continue;
+    if (/r\w?\w?nd(ing)?\s*off/i.test(line) && !/\d\.\d{2}\s*$/.test(line)) {
+      sawRoundOff = true;
+      continue;
+    }
     let m = line.match(LINE);
     if (!m) continue;
     let name = m[1].trim(),
@@ -105,6 +118,24 @@ export function parseText(text, low = []) {
     if (!Number.isFinite(value) || !/[a-z]/i.test(name)) continue;
     if (DATE.test(line) || (TIME.test(line) && !/\d\.\d{2}\s*$/.test(line))) continue;
     let label = cleanName(name.replace(/[:=]+$/, ""));
+    if (STRONG_TOTAL.test(label) && !/sub\s*-?\s*total|item\s*total/i.test(label)) {
+      total = value;
+      afterTotal = true;
+      continue;
+    }
+    // Payment mode, amount tendered, change and UPI lines follow the total.
+    if (afterTotal) continue;
+    if (SKIP.test(name)) continue;
+    // A tax line can be glued to other text on a messy photo
+    // ("Total Qty: 23 Total CGST@2.5 2.5% 113.58"); keep the tax.
+    if (TAX_WORD.test(label) && value) {
+      let short = (label.match(/\b((c|s|i|ut)?gst|vat|cess|(sales?\s*)?tax)(?=\b|\d)[^a-z]*/i) || [label])[0].trim().replace(/[@(（]?\s*$/, "");
+      let word = (short.match(/(c|s|i|ut)?gst|vat|cess/i) || [""])[0].toUpperCase(),
+        pct = (label.match(/@\s*(\d{1,2}(?:\.\d)?)/) || label.match(/[(（](\d{1,2}(?:\.\d{1,2})?)/) || label.match(/(\d{1,2}(?:\.\d{1,2})?)\s*%/) || label.match(/(?:gst|vat)\s*(\d{1,2}(?:\.\d{1,2})?)\s*$/i) || [])[1];
+      if (pct && !(Number(pct) > 0 && Number(pct) <= 28)) pct = "";
+      charges.push({ kind: "tax", label: word ? `${word}${pct ? ` ${pct}%` : ""}` : short, amount: negative ? -value : value });
+      continue;
+    }
     if (NOT_TOTAL.test(label)) continue;
     if (SUBTOTAL.test(label)) {
       subtotal = value;
@@ -122,7 +153,8 @@ export function parseText(text, low = []) {
       continue;
     }
     let qty = 1,
-      q;
+      q,
+      qtyFound = false;
     // "Paneer Tikka 2 x 120.00" / "Naan x 2" / "Naan 4 40.00" / "2 x Naan" / "2 Naan"
     if ((q = name.match(/^(.*?)\s+(\d{1,3})\s*[x×@*]\s*(\d+(?:\.\d{1,2})?)$/i))) {
       name = q[1];
@@ -142,8 +174,12 @@ export function parseText(text, low = []) {
       name = q[1];
       qty = +q[2];
     }
+    qtyFound = qty !== 1 || cleanName(name) !== cleanName(m[1].trim());
     name = cleanName(name);
-    if (!name || !/[a-z]{2}/i.test(name) || qty <= 0) continue;
+    if (!name || !/[a-z]{2}/i.test(name) || qty <= 0 || !value) continue;
+    // Bill numbers, tables and phone digits are whole numbers; prices
+    // carry paise, a currency mark or a quantity.
+    if (!/\.\d{2}\s*(\/-)?$/.test(line) && !/[₹$€£]|rs\.?\s*\d|inr/i.test(line) && !qtyFound) continue;
     let lower = name.toLowerCase();
     items.push({
       name,
@@ -151,6 +187,11 @@ export function parseText(text, low = []) {
       amount: negative ? -value : value,
       low: lowSet.some((w) => lower.includes(w)),
     });
+  }
+  // An unreadable round-off line: the small leftover to the printed total.
+  if (sawRoundOff && total !== "") {
+    let gap = Math.round(total * 100) - [...items, ...charges].reduce((a, x) => a + Math.round(x.amount * 100), 0);
+    if (gap && Math.abs(gap) < 100) charges.push({ kind: "other", label: "Round off", amount: gap / 100 });
   }
   return {
     source,

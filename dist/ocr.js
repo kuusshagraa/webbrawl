@@ -82,15 +82,102 @@ export function processImage(img, { rotation = 0, crop = null, enhance = false, 
 
 export const onProgress = (fn) => (progressFn = fn);
 
-export async function recognize(canvas) {
+/* ---------- PaddleOCR PP-OCRv5 (primary) ---------- */
+
+// Pinned versions: the runtime is tested with these exact builds.
+const ORT_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/";
+const PADDLE = "https://cdn.jsdelivr.net/npm/paddleocr@1.2.0/dist/index.mjs";
+const MODELS = new URL("./models/", import.meta.url).href;
+const MODEL_CACHE = "splitsmart-models-v1";
+let paddle = null,
+  paddleLoading = null;
+
+// Fetches a file once, then serves it from Cache Storage (works offline).
+async function cachedBytes(url, label, weight, base) {
+  let cache = await caches.open(MODEL_CACHE).catch(() => null),
+    hit = await cache?.match(url);
+  if (hit) return new Uint8Array(await hit.arrayBuffer());
+  let res = await fetch(url);
+  if (!res.ok) throw new Error(`download ${res.status}`);
+  let total = Number(res.headers.get("content-length")) || 0,
+    reader = res.body?.getReader(),
+    chunks = [],
+    got = 0;
+  if (!reader) return new Uint8Array(await res.arrayBuffer());
+  for (;;) {
+    let { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.length;
+    if (total) progressFn(label, base + (got / total) * weight);
+  }
+  let bytes = new Uint8Array(got),
+    at = 0;
+  for (let c of chunks) {
+    bytes.set(c, at);
+    at += c.length;
+  }
+  cache?.put(url, new Response(bytes, { headers: { "content-type": "application/octet-stream" } })).catch(() => {});
+  return bytes;
+}
+
+async function loadPaddle() {
+  if (paddle) return paddle;
+  if (paddleLoading) return paddleLoading;
+  paddleLoading = (async () => {
+    progressFn("Getting the scanner ready", 0.02);
+    let ort = await import(ORT_BASE + "ort.wasm.min.mjs");
+    ort.env.wasm.wasmPaths = ORT_BASE;
+    // Threads need cross-origin isolation, which static hosting doesn't give.
+    ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1;
+    let { PaddleOcrService } = await import(PADDLE);
+    let label = "Downloading the scanner (first time only)";
+    let [det, rec, dict] = await Promise.all([
+      cachedBytes(MODELS + "PP-OCRv5_mobile_det_infer.onnx", label, 0.18, 0.05),
+      cachedBytes(MODELS + "PP-OCRv5_mobile_rec_infer.onnx", label, 0.6, 0.23),
+      cachedBytes(MODELS + "ppocrv5_dict.txt", label, 0.01, 0.83),
+    ]);
+    progressFn("Getting the scanner ready", 0.86);
+    // PaddleOCR appends the space character after the dictionary entries.
+    let chars = [...new TextDecoder().decode(dict).replace(/\r?\n$/, "").split(/\r?\n/), " "];
+    paddle = await PaddleOcrService.createInstance({
+      ort,
+      modelPreset: "PP-OCRv5_mobile",
+      detection: { modelBuffer: det.buffer },
+      recognition: { modelBuffer: rec.buffer, charactersDictionary: chars },
+    });
+    return paddle;
+  })();
+  try {
+    return await paddleLoading;
+  } finally {
+    paddleLoading = null;
+  }
+}
+
+async function paddleWords(canvas) {
+  let ocr = await loadPaddle(),
+    ctx = canvas.getContext("2d", { willReadFrequently: true }),
+    img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  progressFn("Reading your receipt", 0.9);
+  let res = await ocr.recognize({ width: img.width, height: img.height, data: new Uint8Array(img.data.buffer) });
+  progressFn("Reading your receipt", 1);
+  return res
+    .filter((r) => r?.text?.trim() && r.box?.points?.length === 4)
+    .map((r) => ({ text: r.text, pts: r.box.points.map((p) => [p.x, p.y]), conf: r.confidence ?? 1 }));
+}
+
+/* ---------- Tesseract (fallback) ---------- */
+
+async function tesseractText(canvas) {
   if (!window.Tesseract) {
-    progressFn("Downloading the scanner", 0.02);
+    progressFn("Downloading the backup scanner", 0.02);
     await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
   }
   if (!worker)
     worker = await window.Tesseract.createWorker("eng", 1, {
       logger: (m) => {
-        let label = /recogniz/.test(m.status) ? "Reading your receipt" : /load|initial/.test(m.status) ? "Preparing the scanner" : m.status;
+        let label = /recogniz/.test(m.status) ? "Reading your receipt" : /load|initial/.test(m.status) ? "Preparing the backup scanner" : m.status;
         progressFn(label, m.progress || 0);
       },
     });
@@ -103,6 +190,18 @@ export async function recognize(canvas) {
     for (let k of ["blocks", "paragraphs", "lines", "words"]) if (Array.isArray(node[k])) node[k].forEach(walk);
   })(result.data);
   return { text: result.data.text || "", low };
+}
+
+// Returns { engine, words } from PaddleOCR, or { engine, text, low } from
+// Tesseract when PaddleOCR can't run on this device.
+export async function recognize(canvas) {
+  try {
+    return { engine: "paddle", words: await paddleWords(canvas) };
+  } catch (e) {
+    console.warn("PaddleOCR unavailable, using Tesseract", e);
+    if (!navigator.onLine && !window.Tesseract) throw e;
+    return { engine: "tesseract", ...(await tesseractText(canvas)) };
+  }
 }
 
 export const CATS = ["Food", "Coffee", "Groceries", "Travel", "Utilities", "Entertainment", "Other"];

@@ -1,4 +1,5 @@
 # SplitSmart
+Initial Base Code is written by me with Ai enhancing it all ideation is done by me code setup. Ai is extensively used for coding reptitive code. However All code is reviewed by me.
 
 Scan a bill, pay only for what you had, and settle up without the awkward group chat. A mobile-first, client-side web app: receipts are read on the device, data stays in the browser, and there is no backend.
 

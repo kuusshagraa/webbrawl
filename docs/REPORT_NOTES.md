@@ -1,6 +1,5 @@
 # SplitSmart: report source notes
 
-> **For Codex (or whoever writes the report):** This file is the factual source for the project report. Every number below was measured during development. Turn it into a report with these sections: Problem identified → Research and insights → Solution → How it works → Results → Testing → Limitations and next steps. Use the screenshots listed in section 12 (all in `docs/screens/`). Section 13 holds the team's phone test results; include them once filled in. Don't invent numbers; if something isn't here, leave it out or mark it as future work.
 
 ## 1. Project snapshot
 

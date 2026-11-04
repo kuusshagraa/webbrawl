@@ -217,31 +217,7 @@ First-time setup downloads about 35 MB (engine + models) once; a fresh browser c
 | `../dashboard-desktop.png` | Desktop layout |
 | `demo-tour-step.png` | Guided demo: spotlight on the automatic veg exclusion |
 
-## 13. Phone test checklist (to be filled in by the team)
 
-Test on the live app: https://super-lebkuchen-c44ad5.netlify.app. Mark each line ✅ / ❌ and add notes (phone model, browser, anything odd).
-
-| # | Check | iPhone (Safari) | Android (Chrome) | Notes |
-|---|---|---|---|---|
-| 0 | Guided demo (`/#/demo`): all 26 steps, Exit restores the app | | | |
-| 1 | Onboarding: name, avatar (shuffle, customise, photo), food tags, crew | | | |
-| 2 | Add to Home Screen; opens like an app | | | |
-| 3 | Quick Add by typing "Uber 640 with <friend>" | | | |
-| 4 | Quick Add by voice (🎙) | | | |
-| 5 | Quick Add keypad: amount, faces, Save in ≤ 4 taps | | | |
-| 6 | WhatsApp button opens WhatsApp with the message | | | |
-| 7 | Scan a paper bill with the live camera (flash, crop, rotate) | | | |
-| 8 | Scan a gallery photo / Swiggy or Zomato screenshot | | | |
-| 9 | First scan time (downloads), second scan time | | | |
-| 10 | Items correct? Taxes and total correct? | | | |
-| 11 | Veg / no-alcohol friend left out automatically | | | |
-| 12 | Split by count; pass the phone | | | |
-| 13 | Save → summary prints; share link opens for a friend | | | |
-| 14 | Settle up: UPI link/QR, Remind, mark paid, confetti when square | | | |
-| 15 | Scan works with mobile data off (after first scan) | | | |
-| 16 | Nothing hidden behind the "Powered by Netlify" badge | | | |
-| 17 | Monthly Wrapped from Insights; share image | | | |
-| 18 | Haptics on Android keypad taps | n/a | | |
 
 ## 14. Glossary
 
